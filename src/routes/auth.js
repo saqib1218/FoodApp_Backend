@@ -170,13 +170,13 @@ router.post('/logout', auth, (req, res) => {
   });
 });
 
-// Phone signup: check if phone exists and send OTP
+// Phone signup: check if mobileNumber exists and send OTP
 router.post('/signup/phone', authController.signupPhone);
 
-// Complete signup: save phone and password
-router.post('/signup/complete', authController.completeSignup);
+// Complete owner creation: save mobileNumber and pin
+router.post('/createOwner/complete', authController.completeSignup);
 
-// Login with phone and password
+// Login with mobileNumber and pin
 router.post('/login/phone', authController.loginWithPhone);
 
 // Refresh access token

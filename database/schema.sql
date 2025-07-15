@@ -4,11 +4,11 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    phone VARCHAR(20) UNIQUE, -- Add phone column, unique
-    name VARCHAR(100),        -- Make name nullable
-    email VARCHAR(255) UNIQUE, -- Make email nullable
-    password VARCHAR(255) NOT NULL,
-    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+    mobileNumber VARCHAR(20) UNIQUE, -- Changed from phone
+    name VARCHAR(100),
+    email VARCHAR(255) UNIQUE,
+    pin VARCHAR(255) NOT NULL, -- Changed from password
+    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin', 'owner')),
     refresh_token VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -20,11 +20,20 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='refresh_token') THEN
         ALTER TABLE users ADD COLUMN refresh_token VARCHAR(100);
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='mobileNumber') THEN
+        ALTER TABLE users ADD COLUMN mobileNumber VARCHAR(20) UNIQUE;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='phone') THEN
+        ALTER TABLE users RENAME COLUMN phone TO mobileNumber;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='password') THEN
+        ALTER TABLE users RENAME COLUMN password TO pin;
+    END IF;
 END$$;
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
+CREATE INDEX IF NOT EXISTS idx_users_mobileNumber ON users(mobileNumber);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
 
@@ -46,7 +55,7 @@ CREATE TRIGGER update_users_updated_at
 
 -- Insert default admin user (password: Admin123!)
 -- You should change this password in production
-INSERT INTO users (name, email, password, role) 
+INSERT INTO users (name, email, pin, role) 
 VALUES (
     'Admin User', 
     'admin@example.com', 

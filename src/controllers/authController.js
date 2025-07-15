@@ -3,18 +3,18 @@ const bcrypt = require('bcryptjs');
 const { generateToken } = require('../utils/jwt');
 const crypto = require('crypto');
 
-// 1. Check if phone number exists and send OTP (mocked)
+// 1. Check if mobileNumber exists and send OTP (mocked)
 exports.signupPhone = async (req, res) => {
   try {
-    const { phone } = req.body;
-    if (!phone) {
-      return res.status(400).json({ success: false, error: { message: 'Phone number is required' } });
+    const { mobileNumber } = req.body;
+    if (!mobileNumber) {
+      return res.status(400).json({ success: false, error: { message: 'Mobile number is required' } });
     }
-    const result = await pool.query('SELECT id FROM users WHERE phone = $1', [phone]);
+    const result = await pool.query('SELECT id FROM users WHERE mobileNumber = $1', [mobileNumber]);
     if (result.rows.length > 0) {
-      return res.status(400).json({ success: false, error: { message: 'Number already exists' } });
+      return res.status(400).json({ success: false, error: { message: 'Number already exists' , userId: result.rows[0].id} });
     }
-    // Here, you would send an OTP to the phone number (mocked)
+    // Here, you would send an OTP to the mobile number (mocked)
     return res.json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
     console.error('Signup phone error:', error);
@@ -22,27 +22,30 @@ exports.signupPhone = async (req, res) => {
   }
 };
 
-// 2. Complete signup with phone, password, and confirm password
+// 2. Complete signup with mobileNumber and pin
 exports.completeSignup = async (req, res) => {
   try {
-    const { phone, password, confirmPassword } = req.body;
-    if (!phone || !password || !confirmPassword) {
-      return res.status(400).json({ success: false, error: { message: 'Phone, password, and confirm password are required' } });
+    const { mobileNumber, pin, name, email } = req.body;
+    if (!mobileNumber || !pin || !name || !email) {
+      return res.status(400).json({ success: false, error: { message: 'Mobile number, pin, name, and email are required' } });
     }
-    if (password !== confirmPassword) {
-      return res.status(400).json({ success: false, error: { message: 'Passwords do not match' } });
-    }
-    const result = await pool.query('SELECT id FROM users WHERE phone = $1', [phone]);
+    const result = await pool.query('SELECT id FROM users WHERE mobileNumber = $1', [mobileNumber]);
     if (result.rows.length > 0) {
-      return res.status(400).json({ success: false, error: { message: 'Number already exists' } });
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Number already exists',
+          userId: result.rows[0].id
+        }
+      });
     }
     const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPin = await bcrypt.hash(pin, saltRounds);
     // Generate refresh token
     const refreshToken = crypto.randomBytes(40).toString('hex');
     const userResult = await pool.query(
-      'INSERT INTO users (phone, password, role, refresh_token) VALUES ($1, $2, $3, $4) RETURNING id, phone, role, created_at',
-      [phone, hashedPassword, 'user', refreshToken]
+      'INSERT INTO users (mobileNumber, pin, name, email, role, refresh_token) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, mobileNumber, name, email, role, created_at',
+      [mobileNumber, hashedPin, name, email, 'owner', refreshToken]
     );
     const user = userResult.rows[0];
     // Generate access token
@@ -62,20 +65,20 @@ exports.completeSignup = async (req, res) => {
   }
 };
 
-// 3. Login with phone and password
+// 3. Login with mobileNumber and pin
 exports.loginWithPhone = async (req, res) => {
   try {
-    const { phone, password } = req.body;
-    if (!phone || !password) {
-      return res.status(400).json({ success: false, error: { message: 'Phone and password are required' } });
+    const { mobileNumber, pin } = req.body;
+    if (!mobileNumber || !pin) {
+      return res.status(400).json({ success: false, error: { message: 'Mobile number and pin are required' } });
     }
-    const result = await pool.query('SELECT id, phone, password, role FROM users WHERE phone = $1', [phone]);
+    const result = await pool.query('SELECT id, mobileNumber, pin, role FROM users WHERE mobileNumber = $1', [mobileNumber]);
     if (result.rows.length === 0) {
       return res.status(401).json({ success: false, error: { message: 'Invalid credentials' } });
     }
     const user = result.rows[0];
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
+    const isPinValid = await bcrypt.compare(pin, user.pin);
+    if (!isPinValid) {
       return res.status(401).json({ success: false, error: { message: 'Invalid credentials' } });
     }
     // Generate access token
@@ -87,7 +90,7 @@ exports.loginWithPhone = async (req, res) => {
       success: true,
       message: 'Login successful',
       data: {
-        user: { id: user.id, phone: user.phone, role: user.role },
+        user: { id: user.id, mobileNumber: user.mobileNumber, role: user.role },
         accessToken,
         refreshToken
       }

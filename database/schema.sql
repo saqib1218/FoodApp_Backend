@@ -81,3 +81,11 @@ BEGIN
     FROM users;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Create user_devices table
+CREATE TABLE IF NOT EXISTS user_devices (
+    id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    device_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

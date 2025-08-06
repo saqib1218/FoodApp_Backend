@@ -179,6 +179,9 @@ router.post('/createOwner/complete', authController.completeSignup);
 // Login with mobileNumber and pin
 router.post('/login/phone', authController.loginWithPhone);
 
+// OTP verification and device registration
+router.post('/verify-otp-device', authController.verifyOtpAndRegisterDevice);
+
 // Refresh access token
 router.post('/refresh-token', authController.refreshToken);
 

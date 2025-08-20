@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/database');
+const BusinessError= require('../lib/businessErrors');
 
 const auth = async (req, res, next) => {
   try {
@@ -107,4 +108,38 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { auth, optionalAuth }; 
+
+
+const authenticateToken = (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Expect "Bearer <token>"
+
+    if (!token) {
+      throw new BusinessError('TOKEN_INVALID', { traceId: req.traceId });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Must have at least userId in token payload
+    if (!decoded.userId) {
+      throw new BusinessError('TOKEN_INVALID', { traceId: req.traceId });
+    }
+
+    // Attach user info to request
+    req.user = { userId: decoded.userId };
+
+    next();
+  } catch (err) {
+    if (err instanceof jwt.JsonWebTokenError || err instanceof jwt.TokenExpiredError) {
+      return next(new BusinessError('TOKEN_INVALID', { traceId: req.traceId }));
+    }
+    next(err);
+  }
+};
+
+module.exports = { authenticateToken };
+
+
+module.exports = { auth, optionalAuth,authenticateToken }; 

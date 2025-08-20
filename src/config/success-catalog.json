@@ -1,0 +1,75 @@
+{
+  "KITCHEN_CREATED": {
+    "i18n_key": "kitchen.created",
+    "http_status": 201,
+    "code": "OK",
+    "message": "Kitchen created successfully."
+  },
+  "KITCHEN_ADDRESS_CREATED": {
+    "i18n_key": "kitchen.address.created",
+    "http_status": 201,
+    "code": "OK",
+    "message": "Kitchen address added successfully."
+  },
+  "KITCHEN_AVAILABILITY_UPDATED": {
+    "i18n_key": "kitchen.availability.updated",
+    "http_status": 200,
+    "code": "OK",
+    "message": "Kitchen availability updated successfully."
+  },
+  "MEDIA_PROCESSING_STARTED": {
+    "i18n_key": "media.processing.started",
+    "http_status": 202,
+    "code": "OK",
+    "message": "Media is being processed successfully and will be available once uploaded."
+  },
+  
+  "CHEF_INVITATION_CREATED": {
+    "i18n_key": "chef.invitation.created",
+    "http_status": 201,
+    "code": "OK",
+    "message": "Chef invitation created successfully."
+  },
+  
+  "OTP_SENT_SUCCESS": {
+    "i18n_key": "auth.otp_sent_success",
+    "http_status": 200,
+    "code": "OK",
+    "message": "OTP sent successfully."
+  }
+,
+"MOBILE_VERIFIED_SUCCESS": {
+  "i18n_key": "auth.mobile_verified_success",
+  "http_status": 200,
+  "code": "OK",
+  "message": "Mobile number verified and user processed successfully."
+},
+"USER_PIN_SET_SUCCESS": {
+  "i18n_key": "user.pin_set_success",
+  "http_status": 200,
+  "code": "OK",
+  "message": "PIN set successfully."
+}
+
+,"USER_PROFILE_UPDATED_SUCCESS": {
+  "i18n_key": "user.profile_updated_success",
+  "http_status": 200,
+  "code": "OK",
+  "message": "Owner details updated successfully."
+}
+
+
+,"CHEF_INVITATION_VALIDATED_SUCCESS": {
+  "i18n_key": "chef.invitation_validated_success",
+  "http_status": 200,
+  "code": "OK",
+  "message": "Invitation code validated successfully"
+}
+,"AUTH_OTP_RESENT_SUCCESS": {
+  "i18n_key": "auth.otp_resent_success",
+  "http_status": 200,
+  "code": "OK",
+  "message": "OTP resent successfully"
+}
+
+}

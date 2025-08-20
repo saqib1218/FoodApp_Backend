@@ -2,16 +2,21 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create users table
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    mobileNumber VARCHAR(20) UNIQUE, -- Changed from phone
-    name VARCHAR(100),
-    email VARCHAR(255) UNIQUE,
-    pin VARCHAR(255) NOT NULL, -- Changed from password
-    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin', 'owner')),
-    refresh_token VARCHAR(100),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS kitchen_users (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kitchen_id UUID REFERENCES kitchens(id) NULL,
+    name TEXT NOT NULL,
+    phone TEXT UNIQUE NOT NULL,
+    email TEXT,
+    bio TEXT,
+	pin TEXT NOT NULL,
+	is_kyc_verified BOOLEAN DEFAULT FALSE,
+    status TEXT DEFAULT 'pending',
+    is_primary_owner BOOLEAN DEFAULT FALSE,
+    date_of_birth DATE,
+    gender TEXT,
+    joined_at TIMESTAMP DEFAULT NOW(),
+    deleted_at TIMESTAMP
 );
 
 -- Add refresh_token column if it doesn't exist (for migration)

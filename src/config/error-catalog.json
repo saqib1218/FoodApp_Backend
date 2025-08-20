@@ -1,0 +1,207 @@
+{
+  "MISSING_REQUIRED_FIELDS": {
+    "i18n_key": "common.missing_required_fields",
+    "http_status": 400,
+    "message": "Required fields are missing.",
+    "retryable": false
+  },
+  
+  "NO_FIELDS_PROVIDED": {
+    "i18n_key": "common.no_fields_provided",
+    "http_status": 400,
+    "message": "At least one field must be provided to update.",
+    "retryable": false
+  }
+,
+
+  "INVALID_MOBILE_NUMBER_FORMAT": {
+    "i18n_key": "auth.invalid_mobile_number_format",
+    "http_status": 422,
+    "message": "Invalid mobile number format.",
+    "retryable": false
+  },
+  "USER_ALREADY_EXISTS": {
+    "i18n_key": "user.already_exists",
+    "http_status": 409,
+    "message": "User already exists.",
+    "retryable": false
+  },
+  "OTP_ATTEMPTS_EXCEEDED": {
+    "i18n_key": "auth.otp_attempts_exceeded",
+    "http_status": 429,
+    "message": "Too many OTP attempts. Please try again later.",
+    "retryable": true,
+    "retry_after_seconds": 900
+  },
+  "OTP_INVALID": {
+    "i18n_key": "auth.otp_invalid",
+    "http_status": 401,
+    "message": "Invalid OTP code.",
+    "retryable": true,
+    "retry_after_seconds": 60
+  },
+  "OTP_EXPIRED": {
+    "i18n_key": "auth.otp.expired",
+    "http_status": 410,
+    "message": "The OTP has expired. Please request a new one.",
+    "retryable": true,
+    "retry_after_seconds": null
+  },
+  "OTP_MISMATCH": {
+    "i18n_key": "auth.otp.mismatch",
+    "http_status": 400,
+    "message": "Invalid OTP.",
+    "retryable": false
+  },
+  "OTP_TOO_MANY_ATTEMPTS": {
+    "i18n_key": "auth.otp.too_many_attempts",
+    "http_status": 429,
+    "message": "Too many attempts. Please try again later.",
+    "retryable": true,
+    "retry_after_seconds": 900
+  },
+"OTP_STILL_VALID": {
+  "i18n_key": "auth.otp_still_valid",
+  "http_status": 429,
+  "message": "OTP is still valid. Please wait before requesting a new one.",
+  "retryable": true,
+  "retry_after_seconds": null
+},
+"USER_PIN_ALREADY_SET": {
+  "i18n_key": "user.pin_already_set",
+  "http_status": 409,
+  "message": "PIN has already been set. To change it, please use the reset PIN flow.",
+  "retryable": false
+},
+
+  "USER_NOT_FOUND": {
+    "i18n_key": "user.not_found",
+    "http_status": 404,
+    "message": "User not found.",
+    "retryable": false
+  },
+  "USER_LOCKED": {
+    "i18n_key": "auth.user_locked",
+    "http_status": 403,
+    "message": "User account is locked.",
+    "retryable": false
+  },
+  "USER_BLOCKED": {
+    "i18n_key": "user.blocked",
+    "http_status": 403,
+    "message": "Your account has been blocked.",
+    "retryable": false
+  },
+  "USER_NOT_AUTHORIZED": {
+  "i18n_key": "auth.user_not_authorized",
+  "http_status": 403,
+  "message": "You are not authorized to perform this action.",
+  "retryable": false
+},
+
+  "INVALID_CREDENTIALS": {
+    "i18n_key": "auth.invalid_credentials",
+    "http_status": 401,
+    "message": "Invalid login credentials.",
+    "retryable": false
+  },
+  "AUTH_REQUIRED": {
+    "i18n_key": "auth.required",
+    "http_status": 401,
+    "message": "Authentication is required.",
+    "retryable": false
+  },
+  "TOKEN_EXPIRED": {
+    "i18n_key": "auth.token.expired",
+    "http_status": 401,
+    "message": "Your session has expired. Please log in again.",
+    "retryable": true,
+    "retry_after_seconds": null
+  },
+  "TOKEN_INVALID": {
+    "i18n_key": "auth.token.invalid",
+    "http_status": 401,
+    "message": "Invalid authentication token.",
+    "retryable": false
+  },
+  "OTP_NOT_FOUND": {
+    "i18n_key": "auth.otp.not_found",
+    "http_status": 404,
+    "message": "No OTP found for this request.",
+    "retryable": false
+  },
+  "VALIDATION_FAILED": {
+    "i18n_key": "common.validation_failed",
+    "http_status": 422,
+    "message": "Some fields are invalid.",
+    "retryable": false
+  },
+  "RATE_LIMITED": {
+    "i18n_key": "common.rate_limited",
+    "http_status": 429,
+    "message": "Please wait before trying again.",
+    "retryable": true,
+    "retry_after_seconds": null
+  },
+  "INTERNAL_ERROR": {
+    "i18n_key": "common.internal_error",
+    "http_status": 500,
+    "message": "An unexpected error occurred. Please try again later.",
+    "retryable": true
+  },
+    "INVITATION_NOT_FOUND": {
+    "i18n_key": "chef.invitation_not_found",
+    "http_status": 404,
+    "message": "Invitation code not found.",
+    "retryable": false
+  },
+  "INVITATION_ALREADY_USED": {
+    "i18n_key": "chef.invitation_already_used",
+    "http_status": 400,
+    "message": "This invitation has already been accepted.",
+    "retryable": false
+  },
+  "EMAIL_ALREADY_USED": {
+  "i18n_key": "user.email_already_used",
+  "http_status": 400,
+  "message": "Email is already in use by another user.",
+  "retryable": false
+},
+"KITCHEN_ALREADY_EXISTS": {
+  "i18n_key": "kitchen.already_exists",
+  "http_status": 409,
+  "message": "A kitchen is already associated with this user.",
+  "retryable": false
+},
+"KITCHEN_NAME_ALREADY_USED": {
+  "i18n_key": "kitchen.name_already_used",
+  "http_status": 409,
+  "message": "This kitchen name is already in use. Please choose another name.",
+  "retryable": false
+}
+,"KITCHEN_NOT_FOUND": {
+  "i18n_key": "kitchen.not_found",
+  "http_status": 404,
+  "message": "No kitchen found. Please create a kitchen first.",
+  "retryable": false
+},  "MEDIA_PROCESSING_FAILED": {
+    "i18n_key": "media.processing_failed",
+    "http_status": 500,
+    "message": "Media processing failed. Please try again later.",
+    "retryable": true
+  }
+,  "INVALID_TYPE": {
+    "i18n_key": "media.invalid_type",
+    "http_status": 400,
+    "message": "Invalid media type. Allowed types are image, video, or audio.",
+    "retryable": false
+  },
+  "INVALID_CATEGORY": {
+    "i18n_key": "media.invalid_category",
+    "http_status": 400,
+    "message": "Invalid category type. Allowed categories are logo, banner, or thumbnail.",
+    "retryable": false
+  }
+
+
+}

@@ -7,182 +7,188 @@ const {
   validateRegistration, 
   validateLogin 
 } = require('../utils/validation');
-const authController = require('../controllers/authController');
-
+const authController = require('../controllers/auth');
+const {authenticateToken} =require('../middleware/auth');
 const router = express.Router();
+const rateLimitHandler=require("../middleware/rateLimitHandler");
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
-router.post('/register', validateRegistration, async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
+// // @route   POST /api/auth/register
+// // @desc    Register a new user
+// // @access  Public
+// router.post('/register', validateRegistration, async (req, res) => {
+//   try {
+//     const { name, email, password } = req.body;
 
-    // Check if user already exists
-    const existingUser = await pool.query(
-      'SELECT id FROM users WHERE email = $1',
-      [email]
-    );
+//     // Check if user already exists
+//     const existingUser = await pool.query(
+//       'SELECT id FROM users WHERE email = $1',
+//       [email]
+//     );
 
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'User with this email already exists'
-        }
-      });
-    }
+//     if (existingUser.rows.length > 0) {
+//       return res.status(400).json({
+//         success: false,
+//         error: {
+//           message: 'User with this email already exists'
+//         }
+//       });
+//     }
 
-    // Hash password
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+//     // Hash password
+//     const saltRounds = 12;
+//     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user
-    const result = await pool.query(
-      `INSERT INTO users (name, email, password, role) 
-       VALUES ($1, $2, $3, $4) 
-       RETURNING id, name, email, role, created_at`,
-      [name, email, hashedPassword, 'user']
-    );
+//     // Create user
+//     const result = await pool.query(
+//       `INSERT INTO users (name, email, password, role) 
+//        VALUES ($1, $2, $3, $4) 
+//        RETURNING id, name, email, role, created_at`,
+//       [name, email, hashedPassword, 'user']
+//     );
 
-    const user = result.rows[0];
+//     const user = result.rows[0];
 
-    // Generate JWT token
-    const token = generateToken(user.id);
+//     // Generate JWT token
+//     const token = generateToken(user.id);
 
-    res.status(201).json({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          created_at: user.created_at
-        },
-        token
-      },
-      message: 'User registered successfully'
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Internal server error'
-      }
-    });
-  }
-});
+//     res.status(201).json({
+//       success: true,
+//       data: {
+//         user: {
+//           id: user.id,
+//           name: user.name,
+//           email: user.email,
+//           role: user.role,
+//           created_at: user.created_at
+//         },
+//         token
+//       },
+//       message: 'User registered successfully'
+//     });
+//   } catch (error) {
+//     console.error('Registration error:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: {
+//         message: 'Internal server error'
+//       }
+//     });
+//   }
+// });
 
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
-router.post('/login', validateLogin, async (req, res) => {
-  try {
-    const { email, password } = req.body;
+// // @route   POST /api/auth/login
+// // @desc    Login user
+// // @access  Public
+// router.post('/login', validateLogin, async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
 
-    // Find user by email
-    const result = await pool.query(
-      'SELECT id, name, email, password, role, created_at FROM users WHERE email = $1',
-      [email]
-    );
+//     // Find user by email
+//     const result = await pool.query(
+//       'SELECT id, name, email, password, role, created_at FROM users WHERE email = $1',
+//       [email]
+//     );
 
-    if (result.rows.length === 0) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          message: 'Invalid credentials'
-        }
-      });
-    }
+//     if (result.rows.length === 0) {
+//       return res.status(401).json({
+//         success: false,
+//         error: {
+//           message: 'Invalid credentials'
+//         }
+//       });
+//     }
 
-    const user = result.rows[0];
+//     const user = result.rows[0];
 
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          message: 'Invalid credentials'
-        }
-      });
-    }
+//     // Check password
+//     const isPasswordValid = await bcrypt.compare(password, user.password);
+//     if (!isPasswordValid) {
+//       return res.status(401).json({
+//         success: false,
+//         error: {
+//           message: 'Invalid credentials'
+//         }
+//       });
+//     }
 
-    // Generate JWT token
-    const token = generateToken(user.id);
+//     // Generate JWT token
+//     const token = generateToken(user.id);
 
-    res.json({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          created_at: user.created_at
-        },
-        token
-      },
-      message: 'Login successful'
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Internal server error'
-      }
-    });
-  }
-});
+//     res.json({
+//       success: true,
+//       data: {
+//         user: {
+//           id: user.id,
+//           name: user.name,
+//           email: user.email,
+//           role: user.role,
+//           created_at: user.created_at
+//         },
+//         token
+//       },
+//       message: 'Login successful'
+//     });
+//   } catch (error) {
+//     console.error('Login error:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: {
+//         message: 'Internal server error'
+//       }
+//     });
+//   }
+// });
 
-// @route   GET /api/auth/me
-// @desc    Get current user
-// @access  Private
-router.get('/me', auth, async (req, res) => {
-  try {
-    res.json({
-      success: true,
-      data: {
-        user: req.user
-      }
-    });
-  } catch (error) {
-    console.error('Get current user error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Internal server error'
-      }
-    });
-  }
-});
+// // @route   GET /api/auth/me
+// // @desc    Get current user
+// // @access  Private
+// router.get('/me', auth, async (req, res) => {
+//   try {
+//     res.json({
+//       success: true,
+//       data: {
+//         user: req.user
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Get current user error:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: {
+//         message: 'Internal server error'
+//       }
+//     });
+//   }
+// });
 
-// @route   POST /api/auth/logout
-// @desc    Logout user (client-side token removal)
-// @access  Private
-router.post('/logout', auth, (req, res) => {
-  res.json({
-    success: true,
-    message: 'Logout successful'
-  });
-});
+// // @route   POST /api/auth/logout
+// // @desc    Logout user (client-side token removal)
+// // @access  Private
+// router.post('/logout', auth, (req, res) => {
+//   res.json({
+//     success: true,
+//     message: 'Logout successful'
+//   });
+// });
 
 // Phone signup: check if mobileNumber exists and send OTP
-router.post('/signup/phone', authController.signupPhone);
+router.post('/signup/phone', authController.signupMobileNumber);
+router.post('/signup/verifyphone', authController.verifyMobileOtpHandler);
+router.post('/resendOtp', authController.resendOtp);
+router.post('/signup/setPin',authenticateToken, authController.setPin);
+router.patch('/signup/owner', authenticateToken,authController.submitOwnerDetails);
 
-// Complete owner creation: save mobileNumber and pin
-router.post('/createOwner/complete', authController.completeSignup);
+router.post('/signup/chef', authenticateToken,authController.chefSignupValidation);
 
-// Login with mobileNumber and pin
-router.post('/login/phone', authController.loginWithPhone);
+router.patch('/chef', authenticateToken,authController.updateChefProfile);
 
-// OTP verification and device registration
-router.post('/verify-otp-device', authController.verifyOtpAndRegisterDevice);
+// // Login with mobileNumber and pin
+// router.post('/login/phone', authController.loginWithPhone);
 
-// Refresh access token
-router.post('/refresh-token', authController.refreshToken);
+// // OTP verification and device registration
+// router.post('/verify-otp-device', authController.verifyOtpAndRegisterDevice);
+
+// // Refresh access token
+// router.post('/refresh-token', authController.refreshToken);
 
 module.exports = router; 

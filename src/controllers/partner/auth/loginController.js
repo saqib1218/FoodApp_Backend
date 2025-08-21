@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { generateToken } = require('../../../utils/jwt');
 const crypto = require('crypto');
-const { saveOtp, sendOtp, generateOtp,getLatestOtpEntry,verifyOtp  } = require('../../../utils/Otp');
+const { saveOtp, sendOtp, generateOtp,getLatestOtpEntry,verifyOtp  } = require('../../../utils/otp');
 
 
 

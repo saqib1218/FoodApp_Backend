@@ -4,7 +4,7 @@ const multer = require('multer');
 
 // Configure multer for file uploads with restrictions
 const upload = multer({
-  dest: 'tmp/',
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB max file size
     files: 1 // Only allow 1 file at a time

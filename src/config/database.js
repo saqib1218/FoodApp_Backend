@@ -1,17 +1,25 @@
 const { Pool } = require('pg');
 
-// Database configuration
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'your_database_name',
-  user: process.env.DB_USER || 'your_username',
-  password: process.env.DB_PASSWORD || 'your_password',
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
-};
+// Hybrid Database configuration
+const dbConfig = process.env.POSTGRES_URL
+  ? {
+      connectionString: process.env.POSTGRES_URL,
+      ssl: { rejectUnauthorized: false }, // required for Neon/Vercel
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+    }
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME || 'your_database_name',
+      user: process.env.DB_USER || 'your_username',
+      password: process.env.DB_PASSWORD || 'your_password',
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+    };
 
 // Create a new pool instance
 const pool = new Pool(dbConfig);
@@ -21,11 +29,10 @@ const connectDB = async () => {
   try {
     const client = await pool.connect();
     console.log('✅ PostgreSQL database connected successfully');
-    
-    // Test query
+
     const result = await client.query('SELECT NOW()');
     console.log('📅 Database time:', result.rows[0].now);
-    
+
     client.release();
     return pool;
   } catch (error) {
@@ -51,5 +58,5 @@ process.on('SIGINT', async () => {
 module.exports = {
   connectDB,
   pool,
-  query: (text, params) => pool.query(text, params)
-}; 
+  query: (text, params) => pool.query(text, params),
+};

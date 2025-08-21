@@ -1,11 +1,10 @@
-const { pool } = require('../../config/database');
+const { pool } = require('../../../config/database');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { generateToken } = require('../../utils/jwt');
+const { generateToken } = require('../../../utils/jwt');
 const crypto = require('crypto');
-const { saveOtp, sendOtp, generateOtp,getLatestOtpEntry,verifyOtp  } = require('../../utils/Otp');
-// 1. Check if mobileNumber exists and send OTP (mocked)
-const { validatePhoneNumber } = require("../../utils/validation");
+const { saveOtp, sendOtp, generateOtp,getLatestOtpEntry,verifyOtp  } = require('../../../utils/Otp');
+
 
 
 
@@ -13,7 +12,7 @@ const { validatePhoneNumber } = require("../../utils/validation");
 // 3. Login with mobileNumber, pin, and deviceId
 
 
-exports.loginWithPhone = async (req, res, next) => {
+exports.loginWithPhone = async (req, res) => {
   try {
     const { mobileNumber, pin, deviceId } = req.body;
     if (!mobileNumber || !pin || !deviceId) {
@@ -55,7 +54,7 @@ exports.loginWithPhone = async (req, res, next) => {
 };
 
 // 3b. OTP Verification and Device Registration (hardcoded OTP)
-exports.verifyOtpAndRegisterDevice = async (req, res, next) => {
+exports.verifyOtpAndRegisterDevice = async (req, res) => {
   try {
     const { mobileNumber, otp, deviceId } = req.body;
     if (!mobileNumber || !otp || !deviceId) {
@@ -97,7 +96,7 @@ exports.verifyOtpAndRegisterDevice = async (req, res, next) => {
 };
 
 // 4. Refresh token endpoint
-exports.refreshToken = async (req, res, next) => {
+exports.refreshToken = async (req, res) => {
   try {
     const { refreshToken } = req.body;
     if (!refreshToken) {

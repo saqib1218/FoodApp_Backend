@@ -1,12 +1,12 @@
-const { pool } = require('../../config/database');
+const { pool } = require('../../../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { saveOtp, sendOtp, verifyOtp } = require('../../utils/Otp');
-const { validateMobileNumber, validateRequiredFields } = require("../../utils/validation");
-const BusinessError = require('../../lib/businessErrors');
-const { sendSuccess } = require('../../utils/responseHelpers');
+const { saveOtp, sendOtp, verifyOtp } = require('../../../utils/Otp');
+const { validateMobileNumber, validateRequiredFields } = require("../../../utils/validation");
+const BusinessError = require('../../../lib/businessErrors');
+const { sendSuccess } = require('../../../utils/responseHelpers');
 // If your roleService file is at ../../service/assignRoleToUser.js
-const { assignRoleToUser } = require('../../services/assignRoleToUser'); 
+const { assignRoleToUser } = require('../../../services/assignRoleToUser'); 
 
 
 exports.signupMobileNumber = async (req, res, next) => {

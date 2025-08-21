@@ -1,7 +1,7 @@
-const { pool } = require('../../config/database');
-const { validateRequiredFields } = require('../../utils/validation');
-const BusinessError = require('../../lib/businessErrors');
-const { sendSuccess } = require('../../utils/responseHelpers');
+const { pool } = require('../../../config/database');
+const { validateRequiredFields } = require('../../../utils/validation');
+const BusinessError = require('../../../lib/businessErrors');
+const { sendSuccess } = require('../../../utils/responseHelpers');
 
 /**
  * POST /chef/signup/validate
@@ -15,7 +15,7 @@ const { sendSuccess } = require('../../utils/responseHelpers');
  * - Returns invitation details if valid
  */
 
-const { assignRoleToUser } = require('../../services/assignRoleToUser');
+const { assignRoleToUser } = require('../../../services/assignRoleToUser');
 
 exports.chefSignupValidation = async (req, res, next) => {
   try {

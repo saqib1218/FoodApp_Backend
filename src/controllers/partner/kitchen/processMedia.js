@@ -1,8 +1,10 @@
 const { v4: uuidv4 } = require('uuid');
-const pool = require('../../config/database'); // your DB pool
-const  BusinessError  = require('../../lib/businessErrors');
-const { sendSuccess } = require('../../utils/responseHelpers');
-const { hasPermission } = require('../../services/permissionService');
+const pool = require('../../../config/database'); // your DB pool
+const  BusinessError  = require('../../../lib/businessErrors');
+const { sendSuccess } = require('../../../utils/responseHelpers');
+const { hasPermission } = require('../../../services/permissionService');
+const { publishImageProcessingEvent } = require('../../../events/imageProcessingEvent');
+
 
 // Allowed types
 const ALLOWED_MEDIA_TYPES = ['image', 'video', 'audio'];
@@ -85,33 +87,36 @@ exports.processMedia = async (req, res, next) => {
     console.log('✅ Media record inserted with status: UPLOADING');
 
     // 6️⃣ Async processing (non-blocking) → RabbitMQ worker will handle S3 upload and processing
-    setImmediate(async () => {
-      try {
-        console.log(`📨 [Placeholder] Media ${mediaId} binary file pushed to RabbitMQ for S3 upload`);
-        // RabbitMQ worker will:
-        // 1. Upload file to S3
-        // 2. Update status to 'PROCESSING' after successful S3 upload
-        // 3. Generate variants/thumbnails
-        // 4. Update final status to 'COMPLETED' or 'FAILED'
-        
-        // Simulate S3 upload completion and status update to PROCESSING
-        setTimeout(async () => {
-          try {
-            await pool.query(
-              'UPDATE kitchen_media SET status=$1, updated_at=NOW() WHERE id=$2',
-              ['PROCESSING', mediaId]
-            );
-            console.log(`✅ Media ${mediaId} status updated to PROCESSING after S3 upload`);
-          } catch (updateErr) {
-            console.error(`❌ Failed to update status to PROCESSING for media ${mediaId}:`, updateErr.message);
-          }
-        }, 1000); // Simulate 1 second S3 upload time
-        
-      } catch (err) {
-        console.error(`❌ Failed to process media ${mediaId}:`, err.message);
-        await pool.query('UPDATE kitchen_media SET status=$1, updated_at=NOW() WHERE id=$2', ['FAILED', mediaId]);
-      }
+ // 6️⃣ Async processing (non-blocking) → RabbitMQ worker will handle S3 upload and processing
+setImmediate(async () => {
+  try {
+    // Send event to RabbitMQ
+    await publishImageProcessingEvent({
+      mediaId,
+      filePath: file.path,
+      kitchenId,
+      userId,
+      categoryType: categoryType || null,
+      mediaType: finalMediaType
     });
+
+    console.log(`📨 Media ${mediaId} pushed to RabbitMQ for processing`);
+
+    // Optional: Update status to PROCESSING immediately after queueing
+    await pool.query(
+      'UPDATE kitchen_media SET status=$1, updated_at=NOW() WHERE id=$2',
+      ['PROCESSING', mediaId]
+    );
+    console.log(`✅ Media ${mediaId} status updated to PROCESSING`);
+
+  } catch (err) {
+    console.error(`❌ Failed to push media ${mediaId} to RabbitMQ:`, err.message);
+    await pool.query(
+      'UPDATE kitchen_media SET status=$1, updated_at=NOW() WHERE id=$2',
+      ['FAILED', mediaId]
+    );
+  }
+});
 
     console.log('✅ Step 7: Responding immediately with 202 Accepted');
     return sendSuccess(res, 'MEDIA_PROCESSING_STARTED', { mediaId }, traceId, 202); // 202 Accepted

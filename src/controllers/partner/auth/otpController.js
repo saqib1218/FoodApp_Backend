@@ -1,8 +1,8 @@
-const { pool } = require('../../config/database');
-const { validateRequiredFields } = require("../../utils/validation");
-const { sendOtp, generateOtp } = require('../../utils/Otp');
-const { sendSuccess } = require('../../utils/responseHelpers');
-const BusinessError = require('../../lib/businessErrors');
+const { pool } = require('../../../config/database');
+const { validateRequiredFields } = require("../../../utils/validation");
+const { sendOtp, generateOtp } = require('../../../utils/Otp');
+const { sendSuccess } = require('../../../utils/responseHelpers');
+const BusinessError = require('../../../lib/businessErrors');
 
 const MAX_TRIALS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes in ms

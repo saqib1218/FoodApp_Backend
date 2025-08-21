@@ -502,13 +502,26 @@ CREATE TABLE audit_logs (
 
 
 ---------------------------- Admin Tables-------------
-
--- e.g. 'superadmin', 'moderator'
 CREATE TABLE admin_roles (
     id SERIAL PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,              
     description TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    created_by UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+    updated_at TIMESTAMP,
+    updated_by UUID REFERENCES admin_users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE admin_roles (
+    id SERIAL PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,              
+    description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    created_by UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+    updated_at TIMESTAMP,
+    updated_by UUID REFERENCES admin_users(id) ON DELETE SET NULL
 );
 
 -- e.g. 'edit_dishes', 'view_orders'
@@ -517,6 +530,17 @@ CREATE TABLE admin_permissions (
     key TEXT UNIQUE NOT NULL,               
     description TEXT
 );
+CREATE TABLE admin_permissions (
+    id SERIAL PRIMARY KEY,
+    key TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+    updated_at TIMESTAMP,
+    updated_by UUID REFERENCES admin_users(id) ON DELETE SET NULL
+);
+
 
 --which role will have which permission
 CREATE TABLE admin_role_permissions (
@@ -561,4 +585,13 @@ CREATE TABLE admin_audit_logs (
     target_id UUID,
     metadata JSONB,                             
     created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE admin_user_auth (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_user_id UUID REFERENCES admin_users(id),
+    refresh_token TEXT UNIQUE,
+    refresh_token_created_at TIMESTAMP DEFAULT NOW(),
+    is_refresh_token_expired BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );

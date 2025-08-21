@@ -3,7 +3,7 @@
 
 const { pool } = require('../config/database');
 
-
+const MAX_VERIFY_TRIALS = 5;
 // Generates a 4-digit OTP
 function generateOtp() {
   return Math.floor(1000 + Math.random() * 9000).toString(); // ensures 4-digit code
@@ -163,13 +163,6 @@ async function getLatestOtpEntry({ identity, otpType }) {
 
 
 
-
-
-
-
-
-
-const MAX_VERIFY_TRIALS = 5;
 
 const verifyOtp = async ({ otp_id, otp_code }) => {
   try {

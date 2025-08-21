@@ -7,7 +7,7 @@ const {
   validateRegistration, 
   validateLogin 
 } = require('../utils/validation');
-const authController = require('../controllers/auth');
+const authController = require('../controllers/partner/auth');
 const {authenticateToken} =require('../middleware/auth');
 const router = express.Router();
 const rateLimitHandler=require("../middleware/rateLimitHandler");

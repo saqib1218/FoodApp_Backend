@@ -6,7 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
-
+const { connectRabbitMQ } = require('./config/rabbitmqClient');
 const { connectDB } = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 const notFound = require('./middleware/notFound');
@@ -14,6 +14,7 @@ const traceIdMiddleware = require('./middleware/traceId');
 const loggingMiddleware = require('./middleware/loggingMiddleware');
 const logger = require('../src/config/logger'); // Pino instance
 const kitchenRoutes=require('./routes/kitchenRoutes')
+const adminRoutes=require('./routes/admin/authRoutes')
 // Import routes
 const authRoutes = require('./routes/auth');
 
@@ -52,6 +53,7 @@ app.use(loggingMiddleware); // logs requests and responses (masked)
 // -------------------- API Routes --------------------
 app.use('/api/auth', authRoutes);
 app.use('/api/kitchen', kitchenRoutes);
+app.use('/api/admin/auth',adminRoutes );
 // Add other routes here
 
 // -------------------- Health Check & Root --------------------
@@ -77,13 +79,15 @@ app.use(notFound);
 app.use(errorHandler);
 
 // -------------------- Start Server --------------------
+
+
 const startServer = async () => {
   try {
-    await connectDB();
+    await connectDB();           // Connect to your database
+    await connectRabbitMQ();     // Connect to RabbitMQ
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/health`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -92,5 +96,7 @@ const startServer = async () => {
 };
 
 startServer();
+
+
 
 module.exports = app;

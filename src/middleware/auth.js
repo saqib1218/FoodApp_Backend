@@ -113,22 +113,20 @@ const optionalAuth = async (req, res, next) => {
 const authenticateToken = (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Expect "Bearer <token>"
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
       throw new BusinessError('TOKEN_INVALID', { traceId: req.traceId });
     }
 
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Must have at least userId in token payload
-    if (!decoded.userId) {
+    if (!decoded.user_id) { // <== fix here
       throw new BusinessError('TOKEN_INVALID', { traceId: req.traceId });
     }
 
     // Attach user info to request
-    req.user = { userId: decoded.userId };
+    req.user = { userId: decoded.user_id };
 
     next();
   } catch (err) {
@@ -138,6 +136,8 @@ const authenticateToken = (req, res, next) => {
     next(err);
   }
 };
+
+
 
 module.exports = { authenticateToken };
 

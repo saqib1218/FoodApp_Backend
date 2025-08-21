@@ -70,6 +70,34 @@
   "http_status": 200,
   "code": "OK",
   "message": "OTP resent successfully"
+},
+"USER_LOGIN_SUCCESS": {
+  "i18n_key": "auth.user_login_success",
+  "http_status": 200,
+  "code": "OK",
+  "message": "User logged in successfully."
 }
+,"USER_CREATED": {
+  "i18n_key": "auth.user_created_success",
+  "http_status": 200,
+  "code": "OK",
+  "message": "User created successfully."
+},
+  "PERMISSION_CREATED_SUCCESS": {
+    "i18n_key": "admin.permission_created_success",
+    "http_status": 201,
+    "code": "OK",
+    "message": "Permission created successfully."
+  }
+,
+  "ROLE_CREATED_SUCCESS": {
+    "i18n_key": "admin.role_created_success",
+    "http_status": 201,
+    "code": "OK",
+    "message": "Role created successfully."
+  }
+
+
+
 
 }

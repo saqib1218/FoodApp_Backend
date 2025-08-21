@@ -1,8 +1,8 @@
 const crypto = require('crypto');
-const { pool } = require('../../config/database');
-const BusinessError = require('../../lib/businessErrors');
-const { sendSuccess } = require('../../utils/responseHelpers');
-const { hasPermission } = require('../../services/permissionService');
+const { pool } = require('../../../config/database');
+const BusinessError = require('../../../lib/businessErrors');
+const { sendSuccess } = require('../../../utils/responseHelpers');
+const { hasPermission } = require('../../../services/permissionService');
 
 exports.createChefInvitation = async (req, res, next) => {
   const traceId = req.traceId;

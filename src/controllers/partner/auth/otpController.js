@@ -1,6 +1,6 @@
 const { pool } = require('../../../config/database');
 const { validateRequiredFields } = require("../../../utils/validation");
-const { sendOtp, generateOtp } = require('../../../utils/Otp');
+const { sendOtp, generateOtp } = require('../../../utils/otp');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const BusinessError = require('../../../lib/businessErrors');
 

@@ -1,0 +1,25 @@
+# Server Configuration
+NODE_ENV=development
+PORT=3000
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5434
+DB_NAME=myappdb
+DB_USER=myappuser
+DB_PASSWORD=newpassword
+# DB_SSL=false
+
+# JWT Configuration
+JWT_SECRET=b1e529b267c964607162d5629ba1246cb9917d3d4ab95cd2c83932947e4dd147069a9ab63c7862adaacfe4ea2209d66dc34f7708a90cf73553b122fb2cbca79f
+JWT_EXPIRES_IN=24h
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:3000
+
+# Logging
+LOG_LEVEL=info 

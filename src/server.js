@@ -84,16 +84,24 @@ app.use(errorHandler);
 
 const startServer = async () => {
   try {
+    if (process.env.NODE_ENV !== 'production') {
     await connectDB();           // Connect to your database
     await connectRabbitMQ();     // Connect to RabbitMQ
-
+  } else {
+    console.log('⚡ Running in production - DB connections will be established on-demand');
+    // Don't try to connect immediately in serverless environment
+  }
+  if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
+  }
   } catch (error) {
     console.error('❌ Failed to start server:', error);
+    if (process.env.NODE_ENV !== 'production') {
     process.exit(1);
   }
+}
 };
 
 startServer();

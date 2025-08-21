@@ -1,7 +1,7 @@
 const { pool } = require('../../../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { saveOtp, sendOtp, verifyOtp } = require('../../../utils/Otp');
+const { saveOtp, sendOtp, verifyOtp } = require('../../../utils/otp');
 const { validateMobileNumber, validateRequiredFields } = require("../../../utils/validation");
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');

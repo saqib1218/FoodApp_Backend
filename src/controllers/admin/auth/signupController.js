@@ -3,15 +3,27 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
+const { validateRequiredFields, validateEmail } = require('../../../utils/validation');
 
 exports.createSuperAdmin = async (req, res, next) => {
   const startTime = Date.now();
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
+    // Validate required fields using utility
+    const missingFields = validateRequiredFields(req.body, ['name', 'email', 'password']);
+    if (missingFields.length > 0) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', {
-        details: { fields: ['name', 'email', 'password'] },
+        details: { fields: missingFields },
+        traceId: req.traceId,
+        retryable: true,
+      });
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      throw new BusinessError('INVALID_EMAIL_FORMAT', {
+        details: { email },
         traceId: req.traceId,
         retryable: true,
       });

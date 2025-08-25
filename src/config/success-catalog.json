@@ -83,7 +83,7 @@
   "code": "OK",
   "message": "User created successfully."
 },
-  "PERMISSION_CREATED_SUCCESS": {
+  "PERMISSION_CREATED": {
     "i18n_key": "admin.permission_created_success",
     "http_status": 201,
     "code": "OK",
@@ -95,6 +95,85 @@
     "http_status": 201,
     "code": "OK",
     "message": "Role created successfully."
+  }
+,"PERMISSION_UPDATED": {
+  "i18n_key": "admin.permission_updated_success",
+  "http_status": 200,
+  "code": "OK",
+  "message": "Permission updated successfully."
+},"ROLE_UPDATED": {
+  "i18n_key": "admin.role_updated_success",
+  "http_status": 200,
+  "code": "OK",
+  "message": "Role updated successfully."
+}
+,"USER_STATUS_UPDATED": {
+  "i18n_key": "admin.user.status_updated",
+  "http_status": 200,
+  "code": "OK",
+  "message": "User status updated successfully."
+}
+,"USER_UPDATED": {
+  "i18n_key": "admin.user.updated",
+  "http_status": 200,
+  "code": "OK",
+  "message": "User updated successfully."
+}
+
+,
+  "USER_SOFT_DELETED": {
+    "i18n_key": "admin.user.soft_deleted",
+    "http_status": 200,
+    "code": "OK",
+    "message": "User deleted successfully."
+  },
+  "ROLE_DELETED": {
+    "i18n_key": "admin.role.deleted",
+    "http_status": 200,
+    "code": "OK",
+    "message": "Role deleted successfully."
+  }
+
+,
+  "USERS_LIST_FETCHED": {
+    "i18n_key": "admin.user.fetched",
+    "http_status": 200,
+    "code": "OK",
+    "message": "Users fetched successfully."
+  },
+"USER_DETAILS_FETCHED": {
+  "i18n_key": "admin.user.fetched",
+  "http_status": 200,
+  "code": "OK",
+  "message": "User details fetched successfully.",
+  "retryable": false
+},
+
+  "ROLES_LIST_FETCHED": {
+    "i18n_key": "admin.role.fetched",
+    "http_status": 200,
+    "code": "OK",
+    "message": "Roles fetched successfully."
+  },
+  "PERMISSIONS_LIST_FETCHED": {
+    "i18n_key": "admin.permissions.fetched",
+    "http_status": 200,
+    "code": "OK",
+    "message": "Permissions fetched successfully."
+  }
+
+,
+  "PERMISSIONS_FOR_USER_FETCHED": {
+    "i18n_key": "admin.permissions.for_user_fetched",
+    "http_status": 200,
+    "code": "OK",
+    "message": "Permissions for user fetched successfully."
+  },
+  "ROLES_FOR_USER_FETCHED": {
+    "i18n_key": "admin.roles.for_user_fetched",
+    "http_status": 200,
+    "code": "OK",
+    "message": "Roles for user fetched successfully."
   }
 
 

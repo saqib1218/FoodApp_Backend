@@ -2,6 +2,7 @@ const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
+const { validateRequiredFields } = require('../../../utils/validation');
 
 exports.createRole = async (req, res, next) => {
   const startTime = Date.now();
@@ -9,10 +10,11 @@ exports.createRole = async (req, res, next) => {
     const userId = req.user?.userId; // from validated access token
     const { name, description, isActive, permissionIds } = req.body;
 
-    // 1️⃣ Validate required fields
-    if (!name) {
+    // 1️⃣ Validate required fields using utility
+    const missingFields = validateRequiredFields(req.body, ['name']);
+    if (missingFields.length > 0) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', {
-        details: { fields: ['name'] },
+        details: { fields: missingFields },
         traceId: req.traceId,
         retryable: true,
       });

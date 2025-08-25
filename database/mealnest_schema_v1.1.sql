@@ -502,34 +502,22 @@ CREATE TABLE audit_logs (
 
 
 ---------------------------- Admin Tables-------------
-CREATE TABLE admin_roles (
-    id SERIAL PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,              
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    created_by UUID REFERENCES admin_users(id) ON DELETE SET NULL,
-    updated_at TIMESTAMP,
-    updated_by UUID REFERENCES admin_users(id) ON DELETE SET NULL
-);
 
 CREATE TABLE admin_roles (
     id SERIAL PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,              
+    name TEXT UNIQUE NOT NULL,               
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW(),
     created_by UUID REFERENCES admin_users(id) ON DELETE SET NULL,
     updated_at TIMESTAMP,
-    updated_by UUID REFERENCES admin_users(id) ON DELETE SET NULL
+    updated_by UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+    deleted_at TIMESTAMP
 );
+
 
 -- e.g. 'edit_dishes', 'view_orders'
-CREATE TABLE admin_permissions (
-    id SERIAL PRIMARY KEY,
-    key TEXT UNIQUE NOT NULL,               
-    description TEXT
-);
+
 CREATE TABLE admin_permissions (
     id SERIAL PRIMARY KEY,
     key TEXT UNIQUE NOT NULL,

@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
+const { validateRequiredFields, validateEmail, validateMobileNumber } = require('../../../utils/validation');
 
 exports.createUser = async (req, res, next) => {
   const startTime = Date.now();
@@ -14,17 +15,31 @@ exports.createUser = async (req, res, next) => {
     const { name, email, mobileNumber, password, roleId, isActive } = req.body;
     console.log('[createUser] body:', req.body);
 
-    // 1️⃣ Validate input
-    const missingFields = [];
-    if (!name) missingFields.push('name');
-    if (!email) missingFields.push('email');
-    if (!password) missingFields.push('password');
-    if (!roleId) missingFields.push('roleId');
-
+    // 1️⃣ Validate required fields using utility
+    const missingFields = validateRequiredFields(req.body, ['name', 'email', 'password', 'roleId']);
     if (missingFields.length > 0) {
       console.log('[createUser] missingFields:', missingFields);
       throw new BusinessError('MISSING_REQUIRED_FIELDS', {
         details: { fields: missingFields },
+        traceId: req.traceId,
+        retryable: true,
+      });
+    }
+
+    // 1.5️⃣ Validate email format
+    if (!validateEmail(email)) {
+      throw new BusinessError('INVALID_EMAIL_FORMAT', {
+        details: { email },
+        traceId: req.traceId,
+        retryable: true,
+      });
+    }
+
+    // 1.6️⃣ Validate mobile number format if provided
+    if (mobileNumber && !validateMobileNumber(mobileNumber)) {
+      throw new BusinessError('INVALID_MOBILE_NUMBER_FORMAT', {
+        details: { mobileNumber },
+        message: 'Invalid mobile number format. Use +92XXXXXXXXXX format',
         traceId: req.traceId,
         retryable: true,
       });

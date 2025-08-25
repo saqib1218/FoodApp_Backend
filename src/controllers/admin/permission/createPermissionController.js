@@ -1,8 +1,8 @@
-// src/controllers/admin/permissions/createPermissionController.js
 const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
+const { validateRequiredFields } = require('../../../utils/validation');
 
 exports.createPermission = async (req, res, next) => {
   const startTime = Date.now();
@@ -10,11 +10,8 @@ exports.createPermission = async (req, res, next) => {
     const requestingUserId = req.user?.userId; // from access token
     const { key, name, description } = req.body;
 
-    // 1️⃣ Validate input
-    const missingFields = [];
-    if (!key) missingFields.push('key');
-    if (!name) missingFields.push('name');
-
+    // 1️⃣ Validate input using utility
+    const missingFields = validateRequiredFields(req.body, ['key', 'name']);
     if (missingFields.length > 0) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', {
         details: { fields: missingFields },
@@ -36,7 +33,7 @@ exports.createPermission = async (req, res, next) => {
       key,
       name,
       description || null,
-      requestingUserId, // store the creator's ID
+      requestingUserId,
     ]);
 
     const permission = result.rows[0];
@@ -44,7 +41,7 @@ exports.createPermission = async (req, res, next) => {
     // 4️⃣ Send response
     return sendSuccess(
       res,
-      'PERMISSION_CREATED_SUCCESS',
+      'PERMISSION_CREATED',
       {
         permission,
         meta: { duration_ms: Date.now() - startTime },
@@ -53,6 +50,18 @@ exports.createPermission = async (req, res, next) => {
     );
 
   } catch (err) {
+    // 🛑 Handle duplicate key (unique constraint violation)
+    if (err.code === '23505' && err.constraint === 'admin_permissions_key_key') {
+      return next(
+        new BusinessError('PERMISSION_ALREADY_EXISTS', {
+          details: { fields: ['key'], value: req.body.key },
+          traceId: req.traceId,
+          retryable: false,
+        })
+      );
+    }
+
+    // fallback for other errors
     return next(err);
   }
 };

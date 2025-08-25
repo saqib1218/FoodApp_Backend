@@ -17,6 +17,9 @@ const kitchenRoutes=require('./routes/kitchenRoutes')
 const adminRoutes=require('./routes/admin/authRoutes')
 // Import routes
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/admin/userRoutes');
+const roleRoutes = require('./routes/admin/roleRoutes');
+const permissionRoutes = require('./routes/admin/permissionRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,8 +55,11 @@ app.use(loggingMiddleware); // logs requests and responses (masked)
 
 // -------------------- API Routes --------------------
 app.use('/api/auth', authRoutes);
-app.use('/api/kitchen', kitchenRoutes);
+app.use('/api/kitchens', kitchenRoutes);
 app.use('/api/admin/auth',adminRoutes );
+app.use('/api/admin/users',userRoutes );
+app.use('/api/admin/roles',roleRoutes );
+app.use('/api/admin/permissions',permissionRoutes );
 // Add other routes here
 
 // -------------------- Health Check & Root --------------------

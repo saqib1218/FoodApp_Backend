@@ -101,6 +101,11 @@ const startServer = async () => {
   }
 };
 
+
+// Simulate fetching user with one role and 100 permissions
+
+
+
 startServer();
 
 

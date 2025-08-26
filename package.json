@@ -135,6 +135,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "node-pg-migrate": "^8.0.3",
     "pino-pretty": "^13.1.1"
   }
 }

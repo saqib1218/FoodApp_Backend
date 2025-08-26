@@ -62,7 +62,7 @@ exports.adminUserLogin = async (req, res, next) => {
       name: user.name,
       email: user.email,
       phone: user.phone,
-      is_active: user.is_active,
+      isActive: user.is_active,
       role, // single role as string
     };
 

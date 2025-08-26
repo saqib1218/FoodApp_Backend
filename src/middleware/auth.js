@@ -121,12 +121,18 @@ const authenticateToken = (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (!decoded.user_id) { // <== fix here
+    if (!decoded.userId) {  // ✅ fixed (camelCase)
       throw new BusinessError('TOKEN_INVALID', { traceId: req.traceId });
     }
 
-    // Attach user info to request
-    req.user = { userId: decoded.user_id };
+    // Attach full user info from token to request
+    req.user = {
+      userId: decoded.userId,
+      name: decoded.name,
+      email: decoded.email,
+      phone: decoded.phone,
+      isActive: decoded.isActive
+    };
 
     next();
   } catch (err) {
@@ -136,6 +142,7 @@ const authenticateToken = (req, res, next) => {
     next(err);
   }
 };
+
 
 
 

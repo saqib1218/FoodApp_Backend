@@ -1,7 +1,7 @@
 const { pool } = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
-
+const { hasPermission } = require('../../../services/permissionService');
 
 exports.createKitchen = async (req, res, next) => {
   const client = await pool.connect();

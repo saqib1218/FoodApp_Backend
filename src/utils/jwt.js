@@ -12,7 +12,7 @@ const generateAccessToken = (user) => {
   };
 
   return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '1h', // short-lived token
+    expiresIn: process.env.JWT_EXPIRES_IN || '24h', // short-lived token
   });
 };
 

@@ -214,6 +214,23 @@
   "message": "The specified role does not exist.",
   "retryable": false
 }
-
+,"USER_ACTION_NOT_ALLOWED": {
+  "i18n_key": "user.action_not_allowed",
+  "http_status": 400,
+  "message": "You cannot perform this action within 1 hour of user creation.",
+  "retryable": false
+}
+,"PERMISSION_NOT_FOUND": {
+  "i18n_key": "admin.permission_not_found",
+  "http_status": 404,
+  "message": "Permission not found.",
+  "retryable": false
+}
+,"PERMISSION_ALREADY_EXISTS": {
+    "i18n_key": "admin.permission_already_exists",
+    "http_status": 400,
+    "message": "Permission with this key already exists.",
+    "retryable": false
+  }
 
 }

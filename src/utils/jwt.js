@@ -1,13 +1,25 @@
 const jwt = require('jsonwebtoken');
 
-// Generate Access Token
+
 const generateAccessToken = (user) => {
-  const payload = { user_id: user.id, phone: user.phone };
+  const payload = {
+    userId: user.userId || user.id,
+    name: user.name || null,
+    email: user.email || null,
+    phone: user.phone || null,
+    role: user.role || null,         // single role
+    is_active: user.is_active ?? true // default true if missing
+  };
 
   return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '1h', // short lived
+    expiresIn: process.env.JWT_EXPIRES_IN || '1h', // short-lived token
   });
 };
+
+module.exports = { generateAccessToken };
+
+
+module.exports = { generateAccessToken };
 
 // Generate Refresh Token
 const generateRefreshToken = (user) => {

@@ -1,11 +1,9 @@
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
 const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
-const { generateAccessToken, generateRefreshToken } = require('../../../utils/jwt');
-
-
+const { generateAccessToken, decodeToken } = require('../../../utils/jwt');
+const { validateRequiredFields, validateEmail } = require('../../../utils/validation');
 
 exports.adminUserLogin = async (req, res, next) => {
   const startTime = Date.now();
@@ -14,25 +12,28 @@ exports.adminUserLogin = async (req, res, next) => {
     const { email, password } = req.body;
 
     // 1️⃣ Validate required fields
-    if (!email || !password) {
+    const missingFields = validateRequiredFields(req.body, ['email', 'password']);
+    if (missingFields.length > 0) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', {
-        details: { fields: ['email', 'password'] },
+        details: { fields: missingFields },
         traceId: req.traceId,
         retryable: true,
       });
     }
 
-    // 2️⃣ Find the admin user with password hash and role
+    // 1.5️⃣ Validate email format
+    if (!validateEmail(email)) {
+      throw new BusinessError('INVALID_EMAIL_FORMAT', { details: { email }, traceId: req.traceId, retryable: true });
+    }
+
+    // 2️⃣ Find the user
     const userResult = await pool.query(
-      `SELECT u.id, u.name, u.email, u.password_hash, u.is_active, r.name AS role
-       FROM admin_users u
-       LEFT JOIN admin_user_roles ur ON u.id = ur.admin_user_id
-       LEFT JOIN admin_roles r ON ur.role_id = r.id
-       WHERE u.email = $1 AND u.deleted_at IS NULL
+      `SELECT id, name, email, phone, password_hash, is_active
+       FROM admin_users
+       WHERE email = $1 AND deleted_at IS NULL
        LIMIT 1`,
       [email]
     );
-
     const user = userResult.rows[0];
     if (!user) {
       throw new BusinessError('INVALID_CREDENTIALS', { traceId: req.traceId });
@@ -44,45 +45,36 @@ exports.adminUserLogin = async (req, res, next) => {
       throw new BusinessError('INVALID_CREDENTIALS', { traceId: req.traceId });
     }
 
-    // 4️⃣ Generate tokens using utility functions
-    const userForToken = { id: user.id, phone: user.email }; // Using email as phone for compatibility
-    const accessToken = generateAccessToken(userForToken);
-    const refreshToken = generateRefreshToken(userForToken);
-
-
-    // 6️⃣ Save refresh token in DB (multi-device support)
-    // Note: JWT refresh tokens are self-contained, but we still store them for revocation support
-    const { decodeToken } = require('../../../utils/jwt');
-    const decoded = decodeToken(refreshToken);
-    const refreshTokenExpiry = new Date(decoded.exp * 1000);
-    
-    await pool.query(
-      'INSERT INTO admin_user_auth (admin_user_id, refresh_token, expires_at) VALUES ($1, $2, $3)',
-      [user.id, refreshToken, refreshTokenExpiry]
+    // 4️⃣ Fetch the user's role (single role)
+    const roleResult = await pool.query(
+      `SELECT r.name
+       FROM admin_roles r
+       INNER JOIN admin_user_roles ur ON ur.role_id = r.id
+       WHERE ur.admin_user_id = $1
+       LIMIT 1`,
+      [user.id]
     );
+    const role = roleResult.rows[0]?.name || null;
 
-    // 7️⃣ Set refresh token in secure HttpOnly cookie (NOT in JSON response)
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,       // cannot be accessed by JavaScript
-      secure: process.env.NODE_ENV === "production", // only over HTTPS in prod
-      sameSite: "strict",   // prevents CSRF
-      expires: new Date(refreshTokenExpiry), // cookie expiry matches DB expiry
-    });
+    // 5️⃣ Generate access token (no permissions, single role)
+    const userForToken = {
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      is_active: user.is_active,
+      role, // single role as string
+    };
 
-    // 8️⃣ Send success response (only access token + user info)
+    const accessToken = generateAccessToken(userForToken);
+    console.log('Decoded Access Token:', decodeToken(accessToken));
+
+    // 6️⃣ Send response
     return sendSuccess(
       res,
       'USER_LOGIN_SUCCESS',
       {
         access_token: accessToken,
-        access_token_expires_in: 3600, // seconds
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          is_active: user.is_active,
-          role: user.role,
-        },
         meta: { duration_ms: Date.now() - startTime },
       },
       req.traceId

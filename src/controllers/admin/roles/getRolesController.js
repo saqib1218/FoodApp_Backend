@@ -1,7 +1,7 @@
 const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
-const { getPagination } = require('../../../utils/getPagination'); // <-- import util
+const { getPagination } = require('../../../utils/getPagination');
 
 exports.getRoles = async (req, res, next) => {
   const startTime = Date.now();
@@ -45,8 +45,38 @@ exports.getRoles = async (req, res, next) => {
     }
 
     const rolesRes = await pool.query(rolesQuery, values);
+    const roles = rolesRes.rows;
 
-    // 4️⃣ Total count for pagination only
+    // 4️⃣ Fetch permissions for all roles at once
+    if (roles.length > 0) {
+      const roleIds = roles.map(r => r.id);
+      const permissionsQuery = `
+        SELECT rp.role_id, p.id AS permission_id, p.key, p.name, p.description
+        FROM admin_role_permissions rp
+        JOIN admin_permissions p ON rp.permission_id = p.id
+        WHERE rp.role_id = ANY($1)
+      `;
+      const permissionsRes = await pool.query(permissionsQuery, [roleIds]);
+
+      // Group permissions by role_id
+      const permissionMap = {};
+      permissionsRes.rows.forEach(p => {
+        if (!permissionMap[p.role_id]) permissionMap[p.role_id] = [];
+        permissionMap[p.role_id].push({
+          id: p.permission_id,
+          key: p.key,
+          name: p.name,
+          description: p.description
+        });
+      });
+
+      // Attach permissions to roles
+      roles.forEach(r => {
+        r.permissions = permissionMap[r.id] || [];
+      });
+    }
+
+    // 5️⃣ Total count for pagination only
     let total = null;
     if (paging.type === 'pagination') {
       const countQuery = `SELECT COUNT(*) AS total FROM admin_roles r ${whereSQL}`;
@@ -57,12 +87,12 @@ exports.getRoles = async (req, res, next) => {
       total = parseInt(countRes.rows[0].total, 10);
     }
 
-    // 5️⃣ Send response
+    // 6️⃣ Send response
     return sendSuccess(
       res,
       'ROLES_LIST_FETCHED',
       {
-        roles: rolesRes.rows,
+        roles,
         meta: {
           total,
           limit: paging.limit,

@@ -7,7 +7,6 @@ const PERMISSIONS = require('../../../config/permissions');
 exports.deletePermission = async (req, res, next) => {
   const startTime = Date.now();
 
-  const client = await pool.connect(); // use a client for transaction
   try {
     const requestingUserId = req.user?.userId; // from access token
     const permissionId = req.params.id; // permission ID from route
@@ -23,9 +22,10 @@ exports.deletePermission = async (req, res, next) => {
     // 1️⃣ Check permission of the requesting user
     await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.PERMISSION.DELETE);
 
-    await client.query('BEGIN'); // start transaction
+    // 2️⃣ Start transaction
+    await pool.query('BEGIN');
 
-    // 2️⃣ Soft delete the permission
+    // 3️⃣ Soft delete the permission
     const updateQuery = `
       UPDATE admin_permissions
       SET deleted_at = NOW(),
@@ -34,24 +34,26 @@ exports.deletePermission = async (req, res, next) => {
       WHERE id = $1 AND deleted_at IS NULL
       RETURNING id, key, name, description, deleted_at
     `;
-    const result = await client.query(updateQuery, [permissionId, requestingUserId]);
+    const result = await pool.query(updateQuery, [permissionId, requestingUserId]);
 
     if (!result.rows.length) {
+      await pool.query('ROLLBACK');
       throw new BusinessError('PERMISSION_NOT_FOUND', {
         details: { id: permissionId },
         traceId: req.traceId,
       });
     }
 
-    // 3️⃣ Remove linked role permissions (optional, keeps DB consistent)
-    await client.query(
+    // 4️⃣ Remove linked role permissions (optional)
+    await pool.query(
       `DELETE FROM admin_role_permissions WHERE permission_id = $1`,
       [permissionId]
     );
 
-    await client.query('COMMIT'); // commit transaction
+    // 5️⃣ Commit transaction
+    await pool.query('COMMIT');
 
-    // 4️⃣ Send success response
+    // 6️⃣ Send success response
     return sendSuccess(
       res,
       'PERMISSION_DELETED',
@@ -63,9 +65,8 @@ exports.deletePermission = async (req, res, next) => {
     );
 
   } catch (err) {
-    await client.query('ROLLBACK'); // rollback on error
+    // Rollback in case of error
+    try { await pool.query('ROLLBACK'); } catch (_) {}
     return next(err);
-  } finally {
-    client.release();
   }
 };

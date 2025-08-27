@@ -1,14 +1,12 @@
 const pool = require('../../../config/database');
 const { sendSuccess } = require('../../../utils/responseHelpers');
-const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const BusinessError = require('../../../lib/businessErrors');
 
 exports.getUserById = async (req, res, next) => {
   const startTime = Date.now();
 
   try {
-    const requestingUserId = req.user?.userId;
-    const targetUserId = req.params.userId; // keep as string for UUID
+    const targetUserId = req.params.userId;
 
     // Optional: validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -16,10 +14,7 @@ exports.getUserById = async (req, res, next) => {
       return next(new BusinessError('USER_NOT_FOUND'));
     }
 
-    // 1️⃣ Permission check
-    await hasAdminPermissions(requestingUserId, 'VIEW_USERS');
-
-    // 2️⃣ Fetch user with roles
+    // Fetch user with roles, include deleted_at
     const query = `
       SELECT 
         u.id,
@@ -28,12 +23,14 @@ exports.getUserById = async (req, res, next) => {
         u.phone AS mobile_number,
         u.is_active,
         u.created_at,
+        u.deleted_at,  -- include deleted_at
         COALESCE(
           json_agg(
             json_build_object(
               'role_id', r.id,
               'role_name', r.name,
-              'is_active', r.is_active
+              'is_active', r.is_active,
+              'deleted_at', r.deleted_at  -- include deleted_at for roles too
             )
           ) FILTER (WHERE r.id IS NOT NULL), '[]'
         ) AS roles
@@ -50,7 +47,7 @@ exports.getUserById = async (req, res, next) => {
       return next(new BusinessError('USER_NOT_FOUND'));
     }
 
-    // 3️⃣ Send response
+    // Send response
     return sendSuccess(
       res,
       'USER_DETAILS_FETCHED',

@@ -5,12 +5,14 @@ const editRoleController = require('./editRoleController');
 const deleteRoleController = require('./deleteRoleController');
 const getRolesController=require('./getRolesController');
 const getRolesByUserId=require('./getRolesByUserIdController')
+const getRolesById=require('./getRoleByIdController')
 
 module.exports = {
   ...createRoleController,
   ...editRoleController,
   ...deleteRoleController,
   ...getRolesController,
-  ...getRolesByUserId
+  ...getRolesByUserId,
+  ...getRolesById
 
 };

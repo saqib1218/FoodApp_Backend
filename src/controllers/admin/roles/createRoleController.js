@@ -7,10 +7,10 @@ const { validateRequiredFields } = require('../../../utils/validation');
 exports.createRole = async (req, res, next) => {
   const startTime = Date.now();
   try {
-    const userId = req.user?.userId; // from validated access token
+    const userId = req.user?.userId; // ✅ from validated access token
     const { name, description, isActive, permissionIds } = req.body;
 
-    // 1️⃣ Validate required fields using utility
+    // 1️⃣ Validate required fields
     const missingFields = validateRequiredFields(req.body, ['name']);
     if (missingFields.length > 0) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', {
@@ -19,16 +19,24 @@ exports.createRole = async (req, res, next) => {
         retryable: true,
       });
     }
+    const existingRole = await pool.query('SELECT id FROM admin_roles WHERE name = $1', [name]);
+if (existingRole.rows.length > 0) {
+  throw new BusinessError('ROLE_ALREADY_EXISTS', {
+    details: { name },
+    traceId: req.traceId,
+  });
+}
+
 
     // 2️⃣ Check permission of requesting user
-    await hasAdminPermissions(userId, 'CREATE_ROLE');
+    await hasAdminPermissions(userId, 'admin.user.create');
 
-    // 3️⃣ Insert new role
+    // 3️⃣ Insert new role with created_by
     const result = await pool.query(
-      `INSERT INTO admin_roles (name, description, is_active)
-       VALUES ($1, $2, $3)
-       RETURNING id, name, description, is_active, created_at`,
-      [name, description || null, isActive !== undefined ? isActive : true]
+      `INSERT INTO admin_roles (name, description, is_active, created_by)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, description, is_active, created_at, created_by`,
+      [name, description || null, isActive !== undefined ? isActive : true, userId]
     );
 
     const roleDb = result.rows[0];
@@ -50,6 +58,7 @@ exports.createRole = async (req, res, next) => {
       isActive: roleDb.is_active,
       permissionIds: permissionIds || [],
       createdAt: roleDb.created_at,
+      createdBy: roleDb.created_by, // ✅ include createdBy in response
     };
 
     // 6️⃣ Send success response
@@ -60,7 +69,15 @@ exports.createRole = async (req, res, next) => {
       req.traceId
     );
 
+ 
   } catch (err) {
-    return next(err);
+  if (err.code === '23505') { // duplicate key
+    return next(new BusinessError('ROLE_ALREADY_EXISTS', {
+      details: { name: req.body.name },
+      traceId: req.traceId,
+    }));
   }
+  return next(err);
+}
+
 };

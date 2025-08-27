@@ -126,11 +126,15 @@
     "vary": "^1.1.2",
     "xtend": "^4.0.2"
   },
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "jest"
-  },
+"scripts": {
+  "start": "node src/server.js",
+  "dev": "nodemon src/server.js",
+  "test": "jest",
+
+  "migrate:create": "node-pg-migrate create -m src/migrations",
+  "migrate:up": "node-pg-migrate up -m src/migrations",
+  "migrate:down": "node-pg-migrate down -m src/migrations"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",

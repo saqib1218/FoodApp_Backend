@@ -2,9 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const devSuperAdminController = require('../../controllers/admin/auth')
-const manageAdminUserController=require('../../controllers/admin/user/createUserController')
-const manageAdminRolerController=require('../../controllers/admin/role/createRoleController')
-const manageAdminPermissionController=require('../../controllers/admin/permission/createPermissionController')
+const manageAdminUserController=require('../../controllers/admin/users/createUserController')
+const manageAdminRolerController=require('../../controllers/admin/roles/createRoleController')
+const manageAdminPermissionController=require('../../controllers/admin/permissions/createPermissionController')
 const {authenticateToken} =require('../../middleware/auth');
 const authService=require('../../services/authService')
 // Development-only route

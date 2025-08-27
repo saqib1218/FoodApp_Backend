@@ -6,7 +6,7 @@ exports.getPermissionsByUserId = async (req, res, next) => {
   const startTime = Date.now();
 
   try {
-    const targetUserId = req.params.userId; // param from route
+    const targetUserId = req.params.id; // param from route
 
     // 🔎 Extract search filter
     const { search } = req.query;

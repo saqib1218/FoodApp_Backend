@@ -7,11 +7,9 @@ exports.getRoleById = async (req, res, next) => {
 
   try {
     const roleId = req.params.id; // 🔑 param from route
-
-    // 1️⃣ Extract filters
     const { name, isActive } = req.query;
 
-    // 2️⃣ Build dynamic WHERE clauses
+    // 1️⃣ Build dynamic WHERE clauses
     const whereClauses = ['id = $1', 'deleted_at IS NULL']; // ✅ exclude deleted roles
     const values = [roleId];
     let idx = 2;
@@ -27,7 +25,7 @@ exports.getRoleById = async (req, res, next) => {
 
     const whereSQL = 'WHERE ' + whereClauses.join(' AND ');
 
-    // 3️⃣ Fetch role by ID without permissions
+    // 2️⃣ Fetch role by ID
     const roleQuery = `
       SELECT id, name, description, is_active, created_at, updated_at
       FROM admin_roles
@@ -35,22 +33,36 @@ exports.getRoleById = async (req, res, next) => {
       LIMIT 1
     `;
 
-    console.log('[getRoleById] Executing query:', roleQuery);
-    console.log('[getRoleById] With values:', values);
-
     const roleRes = await pool.query(roleQuery, values);
-    console.log('[getRoleById] Query result:', roleRes.rows);
 
     if (!roleRes.rows.length) {
       return next(new BusinessError('ROLE_NOT_FOUND'));
     }
+
+    const role = roleRes.rows[0];
+
+    // 3️⃣ Fetch permissions for this role
+    const permissionsQuery = `
+      SELECT p.id AS permission_id, p.key, p.name, p.description
+      FROM admin_role_permissions rp
+      JOIN admin_permissions p ON rp.permission_id = p.id
+      WHERE rp.role_id = $1
+    `;
+    const permissionsRes = await pool.query(permissionsQuery, [roleId]);
+
+    role.permissions = permissionsRes.rows.map(p => ({
+      id: p.permission_id,
+      key: p.key,
+      name: p.name,
+      description: p.description
+    }));
 
     // 4️⃣ Send response
     return sendSuccess(
       res,
       'ROLE_FETCHED',
       {
-        role: roleRes.rows[0],
+        role,
         meta: { durationMs: Date.now() - startTime },
       },
       req.traceId

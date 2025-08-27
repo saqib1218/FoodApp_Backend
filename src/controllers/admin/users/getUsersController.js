@@ -3,14 +3,14 @@ const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const { getPagination } = require('../../../utils/getPagination');
-
+const PERMISSIONS = require('../../../config/permissions'); 
 exports.getUsers = async (req, res, next) => {
   const startTime = Date.now();
   try {
     const requestingUserId = req.user?.userId;
 
     // 1️⃣ Permission check
-    await hasAdminPermissions(requestingUserId, 'VIEW_USERS');
+    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.LIST_VIEW);
 
     // 2️⃣ Extract query params
     const {

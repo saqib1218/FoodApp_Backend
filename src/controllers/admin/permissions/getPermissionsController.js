@@ -1,11 +1,17 @@
 const pool = require('../../../config/database');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { getPagination } = require('../../../utils/getPagination');
-
+const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
+const PERMISSIONS = require('../../../config/permissions'); 
 exports.getPermissions = async (req, res, next) => {
   const startTime = Date.now();
   try {
     // 1️⃣ Extract filters & pagination/lazy loading
+
+   const userId = req.user?.userId;
+
+      await hasAdminPermissions(userId, PERMISSIONS.ADMIN.ROLE.LIST_VIEW);
+      
     const { search, page, limit, lastId } = req.query;
     const paging = getPagination({ page, limit, lastId, defaultLimit: 20 });
 

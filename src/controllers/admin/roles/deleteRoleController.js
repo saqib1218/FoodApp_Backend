@@ -2,7 +2,7 @@ const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
-
+const PERMISSIONS = require('../../../config/permissions'); 
 exports.deleteRole = async (req, res, next) => {
   const startTime = Date.now();
   try {
@@ -19,7 +19,7 @@ exports.deleteRole = async (req, res, next) => {
     }
 
     // 2️⃣ Permission check
-    await hasAdminPermissions(requestingUserId, 'DELETE_ROLE');
+ await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.ROLE.DELETE);
 
     // 3️⃣ Check if role exists and is active
     const roleCheck = await pool.query(
@@ -34,7 +34,7 @@ exports.deleteRole = async (req, res, next) => {
     const role = roleCheck.rows[0];
 
     if (!role.is_active) {
-      throw new BusinessError('ROLE_ALREADY_INACTIVE', { traceId: req.traceId });
+      throw new BusinessError('ROLE_NOT_FOUND', { traceId: req.traceId });
     }
 
     // 4️⃣ Soft delete role by marking inactive and setting deleted_at

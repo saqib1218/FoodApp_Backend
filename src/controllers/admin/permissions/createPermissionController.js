@@ -3,11 +3,11 @@ const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const { validateRequiredFields } = require('../../../utils/validation');
-
+const PERMISSIONS = require('../../../config/permissions'); 
 exports.createPermission = async (req, res, next) => {
   const startTime = Date.now();
   try {
-    const requestingUserId = req.user?.userId; // from access token
+    const userId = req.user?.userId; // from access token
     const { key, name, description } = req.body;
 
     // 1️⃣ Validate input using utility
@@ -21,7 +21,7 @@ exports.createPermission = async (req, res, next) => {
     }
 
     // 2️⃣ Check permission
-    await hasAdminPermissions(requestingUserId, 'CREATE_PERMISSION');
+    await hasAdminPermissions(userId, PERMISSIONS.ADMIN.PERMISSION.CREATE);
 
     // 3️⃣ Insert new permission with created_by
     const insertQuery = `

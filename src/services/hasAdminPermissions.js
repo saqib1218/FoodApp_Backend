@@ -3,7 +3,8 @@ const BusinessError = require('../lib/businessErrors');
 
 /**
  * Check if an admin user has required permission(s)
- * @param {string} userId - admin user ID
+ * Only active roles are considered.
+ * @param {string} userId - admin user ID from token
  * @param {string|string[]} requiredPermissions - single permission or array of permission keys
  * @returns {Promise<boolean>} true if user has permission, otherwise throws error
  */
@@ -15,35 +16,29 @@ async function hasAdminPermissions(userId, requiredPermissions) {
   console.log('[hasAdminPermissions] userId:', userId);
   console.log('[hasAdminPermissions] permissionsToCheck:', permissionsToCheck);
 
-  // 1️⃣ Get all roles of the user
+  // 1️⃣ Get all active roles of the user
   const rolesResult = await pool.query(
     `SELECT r.id, r.name
      FROM admin_user_roles ur
      JOIN admin_roles r ON ur.role_id = r.id
-     WHERE ur.admin_user_id = $1`,
+     WHERE ur.admin_user_id = $1 AND r.is_active = TRUE`,
     [userId]
   );
 
   const roles = rolesResult.rows;
-  console.log('[hasAdminPermissions] roles:', roles);
+  console.log('[hasAdminPermissions] active roles:', roles);
 
   if (!roles.length) {
-    console.log('[hasAdminPermissions] No roles assigned');
- throw new BusinessError('USER_NOT_AUTHORIZED', {
-  details: { missing: missingPermissions },
-});
-  }
-
-  // 2️⃣ Superadmin bypass: if any role is superadmin, allow everything
-  if (roles.some(r => r.name.toLowerCase() === 'superadmin')) {
-    console.log('[hasAdminPermissions] Superadmin detected, bypassing permission check');
-    return true;
+    console.log('[hasAdminPermissions] No active roles assigned');
+    throw new BusinessError('USER_NOT_AUTHORIZED', {
+      details: { missing: permissionsToCheck },
+    });
   }
 
   const roleIds = roles.map(r => r.id);
   console.log('[hasAdminPermissions] roleIds:', roleIds);
 
-  // 3️⃣ Check if roles have the required permission(s)
+  // 2️⃣ Check if roles have the required permission(s)
   const permissionResult = await pool.query(
     `SELECT p.key
      FROM admin_role_permissions rp
@@ -59,17 +54,15 @@ async function hasAdminPermissions(userId, requiredPermissions) {
     p => !grantedPermissions.includes(p)
   );
 
-  console.log('[hasAdminPermissions] missingPermissions:', missingPermissions);
-
   if (missingPermissions.length) {
     console.log('[hasAdminPermissions] User missing required permissions');
-  throw new BusinessError('USER_NOT_AUTHORIZED', {
-  details: { missing: missingPermissions },
-});
+    throw new BusinessError('USER_NOT_AUTHORIZED', {
+      details: { missing: missingPermissions },
+    });
   }
 
   console.log('[hasAdminPermissions] All required permissions granted');
-  return true; // all permissions are present
+  return true;
 }
 
 module.exports = { hasAdminPermissions };

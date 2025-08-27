@@ -5,7 +5,22 @@ const PERMISSIONS = {
       LIST_VIEW: "admin.user.list.view",
       DELETE: "admin.user.delete",
       EDIT: "admin.user.edit",
+      ACTIVATE: "admin.user.activate",      // ✅ permission to activate a user
+      DEACTIVATE: "admin.user.deactivate",  // ✅ permission to deactivate a user
+                  // ✅ permission to view user details
     },
+ROLE: {
+    CREATE: "admin.role.create",
+    EDIT: "admin.role.edit",
+    DELETE: "admin.role.delete",
+    LIST_VIEW: "admin.role.list.view", // ✅ permission to view role details
+  },
+  PERMISSION: {
+    CREATE: "admin.permission.create",
+    EDIT: "admin.permission.edit",
+    DELETE: "admin.permission.delete",
+    LIST_VIEW: "admin.permission.list.view", // ✅ permission to view permission details
+  },
   },
 };
 

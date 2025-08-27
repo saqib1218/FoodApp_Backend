@@ -28,15 +28,16 @@ exports.adminUserLogin = async (req, res, next) => {
 
     // 2️⃣ Find the user
     const userResult = await pool.query(
-      `SELECT id, name, email, phone, password_hash, is_active
+      `SELECT id, name, email, phone, password_hash, is_active, deleted_at
        FROM admin_users
-       WHERE email = $1 AND deleted_at IS NULL
+       WHERE email = $1
        LIMIT 1`,
       [email]
     );
     const user = userResult.rows[0];
-    if (!user) {
-      throw new BusinessError('INVALID_CREDENTIALS', { traceId: req.traceId });
+
+    if (!user || user.deleted_at !== null || user.is_active === false) {
+      throw new BusinessError('USER_INACTIVE', { traceId: req.traceId });
     }
 
     // 3️⃣ Compare password
@@ -45,25 +46,31 @@ exports.adminUserLogin = async (req, res, next) => {
       throw new BusinessError('INVALID_CREDENTIALS', { traceId: req.traceId });
     }
 
-    // 4️⃣ Fetch the user's role (single role)
+    // 4️⃣ Fetch the user's role (single active and non-deleted role)
     const roleResult = await pool.query(
-      `SELECT r.name
+      `SELECT r.id, r.name, r.is_active, r.deleted_at
        FROM admin_roles r
        INNER JOIN admin_user_roles ur ON ur.role_id = r.id
        WHERE ur.admin_user_id = $1
+       AND r.is_active = TRUE
+       AND r.deleted_at IS NULL
        LIMIT 1`,
       [user.id]
     );
-    const role = roleResult.rows[0]?.name || null;
+    const role = roleResult.rows[0];
 
-    // 5️⃣ Generate access token (no permissions, single role)
+    if (!role) {
+      throw new BusinessError('USER_INACTIVE', { traceId: req.traceId });
+    }
+
+    // 5️⃣ Generate access token (single role)
     const userForToken = {
       userId: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
       isActive: user.is_active,
-      role, // single role as string
+      role: role.name,
     };
 
     const accessToken = generateAccessToken(userForToken);

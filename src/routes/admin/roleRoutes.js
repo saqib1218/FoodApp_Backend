@@ -11,8 +11,8 @@ router.post('/create',authenticateToken, roleController.createRole);
 router.put('/:id',authenticateToken, roleController.editRole);
 router.delete('/:id',authenticateToken, roleController.deleteRole);
 router.get('/',authenticateToken, roleController.getRoles);
-router.get('/by-id/:id',authenticateToken, roleController.getRoleById);
-router.get('/by-user/:userId',authenticateToken, roleController.getRolesByUserId);
+router.get('/:id',authenticateToken, roleController.getRoleById);
+
 
 
 module.exports = router;

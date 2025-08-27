@@ -526,7 +526,8 @@ CREATE TABLE admin_permissions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by UUID REFERENCES admin_users(id) ON DELETE SET NULL,
     updated_at TIMESTAMP,
-    updated_by UUID REFERENCES admin_users(id) ON DELETE SET NULL
+    updated_by UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+    deleted_at TIMESTAMP DEFAULT NULL
 );
 
 

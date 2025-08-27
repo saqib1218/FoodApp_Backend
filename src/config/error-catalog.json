@@ -231,6 +231,17 @@
     "http_status": 400,
     "message": "Permission with this key already exists.",
     "retryable": false
-  }
-
+  },
+  "ROLE_NOT_FOUND": {
+  "i18n_key": "role.not_found",
+  "http_status": 404,
+  "message": "Role not found.",
+  "retryable": false
+},
+  "ROLE_ALREADY_EXISTS": {
+  "i18n_key": "role.already_exists",
+  "http_status": 404,
+  "message": "Role already exists.",
+  "retryable": false
+}
 }

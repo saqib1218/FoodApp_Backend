@@ -29,7 +29,7 @@ const upload = multer({
 });
 
 const { authenticateToken } = require('../middleware/auth');
-const kitchenController = require('../controllers/partner/kitchen');
+const kitchenController = require('../controllers/partner/kitchens');
 
 // Route: Owner invites a chef
 router.post('/invitations', authenticateToken, kitchenController.createChefInvitation);

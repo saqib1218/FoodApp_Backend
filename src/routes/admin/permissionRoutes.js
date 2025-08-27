@@ -10,7 +10,10 @@ const { authenticateToken } = require('../../middleware/auth');
 router.post('/create',authenticateToken, permissionController.createPermission);
 router.patch('/:id',authenticateToken, permissionController.editPermission);
 router.get('/',authenticateToken, permissionController.getPermissions);
-router.get('/:id',authenticateToken, permissionController.getPermissionById);
-router.get('/:userId',authenticateToken, permissionController.getPermissionsByUserId);
+router.get('/by-id/:id', authenticateToken, permissionController.getPermissionById);
+
+// Get permissions for a specific user
+router.get('/by-user/:userId', authenticateToken, permissionController.getPermissionsByUserId);
+
 router.delete('/:id',authenticateToken, permissionController.deletePermission);
 module.exports = router;

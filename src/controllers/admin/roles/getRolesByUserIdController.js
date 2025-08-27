@@ -6,7 +6,7 @@ exports.getRolesByUserId = async (req, res, next) => {
   const startTime = Date.now();
 
   try {
-    const targetUserId = req.params.userId; // param from route
+    const targetUserId = req.params.id; // param from route
     const { name, isActive } = req.query;
 
     // 1️⃣ Build dynamic WHERE clauses

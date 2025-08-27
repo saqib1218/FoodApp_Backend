@@ -30,7 +30,7 @@ router.delete('/:id', authenticateToken, userController.deleteUser);
 router.get('/', authenticateToken, userController.getUsers);
 
 // Get details of a single user by ID
-router.get('/:userId', authenticateToken, userController.getUserById);
+router.get('/:id', authenticateToken, userController.getUserById);
 
 
 /**
@@ -41,7 +41,7 @@ router.get('/:userId', authenticateToken, userController.getUserById);
  */
 
 // Get all roles assigned to a specific user (with permissions)
-router.get('/:userId/roles', authenticateToken, roleController.getRolesByUserId);
+router.get('/:id/roles', authenticateToken, roleController.getRolesByUserId);
 
 
 /**
@@ -52,7 +52,7 @@ router.get('/:userId/roles', authenticateToken, roleController.getRolesByUserId)
  */
 
 // Get all permissions assigned to a specific user
-router.get('/:userId/permissions', authenticateToken, permissionController.getPermissionsByUserId);
+router.get('/:id/permissions', authenticateToken, permissionController.getPermissionsByUserId);
 
 
 module.exports = router;

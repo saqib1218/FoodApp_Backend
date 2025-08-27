@@ -187,6 +187,13 @@
     "message": "Roles for user fetched successfully."
   }
 
+,
+"PERMISSION_DELETED": {
+  "i18n_key": "admin.permission.deleted",
+  "http_status": 200,
+  "code": "OK",
+  "message": "Permission deleted successfully."
+}
 
 
 

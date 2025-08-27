@@ -1,22 +1,17 @@
 const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
-const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 
 exports.getPermissionsByUserId = async (req, res, next) => {
   const startTime = Date.now();
 
   try {
-    const requestingUserId = req.user?.userId;
     const targetUserId = req.params.userId; // param from route
 
-    // 1️⃣ Permission check
-    await hasAdminPermissions(requestingUserId, 'VIEW_PERMISSION');
-
-    // 2️⃣ Extract search filter
+    // 🔎 Extract search filter
     const { search } = req.query;
 
-    // 3️⃣ Build WHERE clause
+    // 🔎 Build WHERE clause
     const conditions = ['ur.admin_user_id = $1'];
     const values = [targetUserId];
     let idx = 2;
@@ -29,7 +24,7 @@ exports.getPermissionsByUserId = async (req, res, next) => {
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // 4️⃣ Fetch all permissions for the user
+    // 📦 Fetch all permissions for the user
     const query = `
       SELECT DISTINCT p.id, p.key, p.name, p.description, 
                       p.created_by, p.created_at, p.updated_by, p.updated_at
@@ -44,12 +39,7 @@ exports.getPermissionsByUserId = async (req, res, next) => {
     const result = await pool.query(query, values);
     const permissions = result.rows;
 
-    // 5️⃣ Handle case when no permissions found
-    if (!permissions || permissions.length === 0) {
-      throw new BusinessError('PERMISSION_NOT_FOUND');
-    }
-
-    // 6️⃣ Send response
+    // ✅ Always return, even if empty
     return sendSuccess(
       res,
       'PERMISSIONS_FOR_USER_FETCHED',

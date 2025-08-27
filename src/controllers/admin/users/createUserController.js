@@ -5,6 +5,7 @@ const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const { validateRequiredFields, validateEmail, validateMobileNumber } = require('../../../utils/validation');
+const PERMISSIONS = require('../../../config/permissions'); // ✅ import permissions
 
 exports.createUser = async (req, res, next) => {
   const startTime = Date.now();
@@ -38,36 +39,40 @@ exports.createUser = async (req, res, next) => {
     if (mobileNumber && !validateMobileNumber(mobileNumber)) {
       throw new BusinessError('INVALID_MOBILE_NUMBER_FORMAT', {
         details: { mobileNumber },
-        message: 'Invalid mobile number format. Use +92XXXXXXXXXX format',
+      
         traceId: req.traceId,
         retryable: true,
       });
     }
 
-    // 2️⃣ Permission check
-    await hasAdminPermissions(requestingUserId, 'CREATE_USER');
+    // 2️⃣ Permission check (use constant instead of magic string)
+    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.CREATE);
 
     // 3️⃣ Role check
     const roleCheck = await pool.query('SELECT id FROM admin_roles WHERE id = $1', [roleId]);
     if (roleCheck.rowCount === 0) {
       throw new BusinessError('INVALID_ROLE', {
-        message: 'The specified role does not exist',
+  
         traceId: req.traceId,
       });
     }
 
     // 4️⃣ Check for duplicate email or phone
-    let duplicateQuery = `SELECT id, email, phone 
-                          FROM admin_users 
-                          WHERE email = $1 OR (phone IS NOT NULL AND phone = $2)`;
+    let duplicateQuery = `
+      SELECT id, email, phone 
+      FROM admin_users 
+      WHERE email = $1 OR (phone IS NOT NULL AND phone = $2)
+    `;
     const duplicateCheck = await pool.query(duplicateQuery, [email, mobileNumber || null]);
 
     if (duplicateCheck.rowCount > 0) {
       const existingUser = duplicateCheck.rows[0];
       let conflictField = existingUser.email === email ? 'email' : 'phone';
-      throw new BusinessError('USER_ALREADY_EXISTS', 
-       
-      );
+      throw new BusinessError('USER_ALREADY_EXISTS', {
+        message: `User with this ${conflictField} already exists`,
+        details: { conflictField },
+        traceId: req.traceId,
+      });
     }
 
     // 5️⃣ Default password
@@ -87,7 +92,7 @@ exports.createUser = async (req, res, next) => {
       email,
       mobileNumber || null,
       passwordHash,
-      false
+      false,
     ]);
     const dbUser = result.rows[0];
 

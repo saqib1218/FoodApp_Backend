@@ -4,6 +4,7 @@ const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const { validateRequiredFields } = require('../../../utils/validation');
 const { validateUserActionTime } = require('../../../services/validators/userActionValidator');
+const PERMISSIONS = require('../../../config/permissions');
 
 exports.updateUserStatus = async (req, res, next) => {
   const startTime = Date.now();
@@ -30,8 +31,15 @@ exports.updateUserStatus = async (req, res, next) => {
       });
     }
 
-    // 3️⃣ Check permission of requesting user
-    await hasAdminPermissions(requestingUserId, 'CHANGE_USER_STATUS');
+    // 3️⃣ Permission & validation rules
+    if (isActive) {
+      // 🔑 Activation → needs ACTIVATE permission + 1-hour validator
+      await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.ACTIVATE);
+      await validateUserActionTime(targetUserId);
+    } else {
+      // 🔑 Deactivation → only DEACTIVATE permission (no validator)
+      await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.DEACTIVATE);
+    }
 
     // 4️⃣ Check if target user exists
     const userCheck = await pool.query(
@@ -42,10 +50,7 @@ exports.updateUserStatus = async (req, res, next) => {
       throw new BusinessError('USER_NOT_FOUND', { traceId: req.traceId });
     }
 
-    // 5️⃣ Validate action time (no changes within 1 hour of creation)
-    await validateUserActionTime(targetUserId);
-
-    // 6️⃣ Update status
+    // 5️⃣ Update status
     const updateQuery = `
       UPDATE admin_users
       SET is_active = $1, updated_at = NOW()
@@ -55,7 +60,7 @@ exports.updateUserStatus = async (req, res, next) => {
     const result = await pool.query(updateQuery, [isActive, targetUserId]);
     const updatedUser = result.rows[0];
 
-    // 7️⃣ Format response
+    // 6️⃣ Format response
     const responseUser = {
       id: updatedUser.id,
       name: updatedUser.name,
@@ -65,7 +70,7 @@ exports.updateUserStatus = async (req, res, next) => {
       createdAt: updatedUser.created_at,
     };
 
-    // 8️⃣ Send success
+    // 7️⃣ Send success
     return sendSuccess(
       res,
       'USER_STATUS_UPDATED',

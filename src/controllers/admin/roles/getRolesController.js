@@ -2,10 +2,20 @@ const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { getPagination } = require('../../../utils/getPagination');
+const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
+const PERMISSIONS = require('../../../config/permissions'); 
 
 exports.getRoles = async (req, res, next) => {
   const startTime = Date.now();
+
   try {
+    // ✅ Get user ID from authenticated request (token)
+    const userId = req.user?.userId;
+  
+
+    // ✅ Check if user has permission to view roles
+    await hasAdminPermissions(userId, PERMISSIONS.ADMIN.ROLE.LIST_VIEW);
+
     // 1️⃣ Extract filters & pagination/lazy loading
     const { name, isActive, page, limit, lastId } = req.query;
     const paging = getPagination({ page, limit, lastId, defaultLimit: 20 });
@@ -58,7 +68,6 @@ exports.getRoles = async (req, res, next) => {
       `;
       const permissionsRes = await pool.query(permissionsQuery, [roleIds]);
 
-      // Group permissions by role_id
       const permissionMap = {};
       permissionsRes.rows.forEach(p => {
         if (!permissionMap[p.role_id]) permissionMap[p.role_id] = [];
@@ -70,7 +79,6 @@ exports.getRoles = async (req, res, next) => {
         });
       });
 
-      // Attach permissions to roles
       roles.forEach(r => {
         r.permissions = permissionMap[r.id] || [];
       });

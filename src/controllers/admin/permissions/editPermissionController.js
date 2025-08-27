@@ -2,7 +2,7 @@ const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
-
+const PERMISSIONS = require('../../../config/permissions'); 
 exports.editPermission = async (req, res, next) => {
   const startTime = Date.now();
   try {
@@ -20,7 +20,7 @@ exports.editPermission = async (req, res, next) => {
     }
 
     // 2️⃣ Check permission
-    await hasAdminPermissions(requestingUserId, 'EDIT_PERMISSION');
+    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.PERMISSION.EDIT);
 
     // // 3️⃣ Check if permission exists
     const permissionCheck = await pool.query(

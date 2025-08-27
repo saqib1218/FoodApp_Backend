@@ -243,5 +243,11 @@
   "http_status": 404,
   "message": "Role already exists.",
   "retryable": false
+},"USER_INACTIVE": {
+  "i18n_key": "user.inactive",
+  "http_status": 403,
+  "message": "User is inactive. Please contact the administrator or wait for further action.",
+  "retryable": false
 }
+
 }

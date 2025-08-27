@@ -1,14 +1,15 @@
 const pool = require('../../../config/database');
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const { validateEmail, validateMobileNumber } = require('../../../utils/validation');
 const { validateUserActionTime } = require('../../../services/validators/userActionValidator');
+const PERMISSIONS = require('../../../config/permissions'); // ✅ permission constants
 
 exports.editUser = async (req, res, next) => {
   const startTime = Date.now();
+
   try {
     const requestingUserId = req.user?.userId;
     const { id } = req.params; // user id from URL
@@ -24,7 +25,7 @@ exports.editUser = async (req, res, next) => {
     }
 
     // 2️⃣ Permission check
-    await hasAdminPermissions(requestingUserId, 'EDIT_USER');
+    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.EDIT);
 
     // 3️⃣ Check if user exists
     const userCheck = await pool.query(
@@ -62,30 +63,21 @@ exports.editUser = async (req, res, next) => {
       }
     }
 
-    // 7️⃣ Prepare update fields
+    // 7️⃣ Prepare fields for update
     const fieldsToUpdate = [];
     const values = [];
     let idx = 1;
 
-    if (name !== undefined) {
-      fieldsToUpdate.push(`name = $${idx++}`);
-      values.push(name);
-    }
-    if (email !== undefined) {
-      fieldsToUpdate.push(`email = $${idx++}`);
-      values.push(email);
-    }
-    if (mobileNumber !== undefined) {
-      fieldsToUpdate.push(`phone = $${idx++}`);
-      values.push(mobileNumber);
-    }
+    if (name !== undefined) { fieldsToUpdate.push(`name = $${idx++}`); values.push(name); }
+    if (email !== undefined) { fieldsToUpdate.push(`email = $${idx++}`); values.push(email); }
+    if (mobileNumber !== undefined) { fieldsToUpdate.push(`phone = $${idx++}`); values.push(mobileNumber); }
     if (password !== undefined) {
       const passwordHash = await bcrypt.hash(password, 10);
       fieldsToUpdate.push(`password_hash = $${idx++}`);
       values.push(passwordHash);
     }
 
-    // ✅ Handle isActive separately
+    // 8️⃣ Handle isActive separately with validator
     if (isActive !== undefined) {
       if (typeof isActive !== 'boolean') {
         throw new BusinessError('INVALID_STATUS_FORMAT', {
@@ -93,25 +85,20 @@ exports.editUser = async (req, res, next) => {
           traceId: req.traceId,
         });
       }
-
       try {
         await validateUserActionTime(id); // only allow status update if valid
         fieldsToUpdate.push(`is_active = $${idx++}`);
         values.push(isActive);
       } catch (err) {
-        if (
-          err instanceof BusinessError &&
-          err.code === 'USER_ACTION_NOT_ALLOWED'
-        ) {
-          // ⚠️ Skip isActive update but allow other fields
+        if (err instanceof BusinessError && err.code === 'USER_ACTION_NOT_ALLOWED') {
           console.warn(`[editUser] Skipped isActive update for user ${id}: ${err.message}`);
         } else {
-          throw err; // rethrow unexpected errors
+          throw err;
         }
       }
     }
 
-    // 8️⃣ Run update if any fields to update
+    // 9️⃣ Run update if any fields to update
     if (fieldsToUpdate.length > 0) {
       const updateQuery = `
         UPDATE admin_users
@@ -123,39 +110,25 @@ exports.editUser = async (req, res, next) => {
       await pool.query(updateQuery, values);
     }
 
-    // 9️⃣ Handle role replacement (user has one role at a time)
+    // 🔟 Handle role replacement (user has one role at a time)
     if (roleId) {
-      await pool.query(
-        `DELETE FROM admin_user_roles WHERE admin_user_id = $1`,
-        [id]
-      );
-      await pool.query(
-        `INSERT INTO admin_user_roles (admin_user_id, role_id) VALUES ($1, $2)`,
-        [id, roleId]
-      );
+      await pool.query(`DELETE FROM admin_user_roles WHERE admin_user_id = $1`, [id]);
+      await pool.query(`INSERT INTO admin_user_roles (admin_user_id, role_id) VALUES ($1, $2)`, [id, roleId]);
     }
 
-    // 🔟 Fetch updated user
-    const updatedUserRes = await pool.query(
-      `SELECT u.id, u.name, u.email, u.phone AS mobile_number, u.is_active, u.created_at, r.role_id
-       FROM admin_users u
-       LEFT JOIN admin_user_roles r ON u.id = r.admin_user_id
-       WHERE u.id = $1`,
-      [id]
-    );
+    // 1️⃣1️⃣ Fetch updated user with role
+    const updatedUserRes = await pool.query(`
+      SELECT u.id, u.name, u.email, u.phone AS mobile_number, u.is_active, u.created_at, r.role_id
+      FROM admin_users u
+      LEFT JOIN admin_user_roles r ON u.id = r.admin_user_id
+      WHERE u.id = $1
+    `, [id]);
 
     const updatedUser = updatedUserRes.rows[0];
 
-    // 1️⃣1️⃣ Send response
-    return sendSuccess(
-      res,
-      'USER_UPDATED',
-      {
-        user: updatedUser,
-        meta: { durationMs: Date.now() - startTime },
-      },
-      req.traceId
-    );
+    // 1️⃣2️⃣ Send response
+    return sendSuccess(res, 'USER_UPDATED', { user: updatedUser, meta: { durationMs: Date.now() - startTime } }, req.traceId);
+
   } catch (err) {
     return next(err);
   }

@@ -2,8 +2,7 @@ const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
-
-const { getPagination } = require('../../../utils/getPagination'); // <-- import util
+const { getPagination } = require('../../../utils/getPagination');
 
 exports.getUsers = async (req, res, next) => {
   const startTime = Date.now();
@@ -19,12 +18,13 @@ exports.getUsers = async (req, res, next) => {
       email,
       roleId,
       isActive,
+      deleted, // true/false filter for deleted users
       page,
       limit,
       lastId
     } = req.query;
 
-    // 3️⃣ Get pagination / lazy-loading info
+    // 3️⃣ Pagination / lazy-loading
     const paging = getPagination({ page, limit, lastId, defaultLimit: 20 });
 
     // 4️⃣ Build dynamic WHERE clauses
@@ -48,6 +48,10 @@ exports.getUsers = async (req, res, next) => {
       conditions.push(`u.is_active = $${idx++}`);
       values.push(isActive === 'true');
     }
+    if (deleted !== undefined) {
+      if (deleted === 'true') conditions.push(`u.deleted_at IS NOT NULL`);
+      else conditions.push(`u.deleted_at IS NULL`);
+    }
     if (paging.type === 'lazy' && paging.lastId) {
       conditions.push(`u.id > $${idx++}`);
       values.push(paging.lastId);
@@ -57,11 +61,24 @@ exports.getUsers = async (req, res, next) => {
 
     // 5️⃣ Fetch users
     const usersQuery = `
-      SELECT u.id, u.name, u.email, u.phone AS mobile_number, u.is_active, u.created_at,
-             r.role_id
+      SELECT u.id, u.name, u.email, u.phone AS mobile_number, u.is_active, u.created_at, u.deleted_at,
+             COALESCE(
+               json_agg(
+                 json_build_object(
+                   'role_id', r.role_id,
+                   'role_name', r.role_name
+                 )
+               ) FILTER (WHERE r.role_id IS NOT NULL), '[]'
+             ) AS roles
       FROM admin_users u
-      LEFT JOIN admin_user_roles r ON u.id = r.admin_user_id
+      LEFT JOIN (
+        SELECT ur.admin_user_id, ur.role_id, r.name AS role_name
+        FROM admin_user_roles ur
+        LEFT JOIN admin_roles r ON ur.role_id = r.id
+      ) r ON u.id = r.admin_user_id
       ${whereClause}
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
       LIMIT $${idx++} ${paging.type === 'pagination' ? `OFFSET $${idx++}` : ''}
     `;
     if (paging.type === 'pagination') {
@@ -73,7 +90,7 @@ exports.getUsers = async (req, res, next) => {
     const usersRes = await pool.query(usersQuery, values);
     const users = usersRes.rows;
 
-    // 6️⃣ Get total count (only useful for classic pagination)
+    // 6️⃣ Total count for pagination
     let total = null;
     if (paging.type === 'pagination') {
       const countQuery = `

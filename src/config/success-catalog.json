@@ -155,11 +155,22 @@
     "code": "OK",
     "message": "Roles fetched successfully."
   },
+    "ROLE_FETCHED": {
+    "i18n_key": "admin.role.fetched",
+    "http_status": 200,
+    "code": "OK",
+    "message": "Role fetched successfully."
+  },
   "PERMISSIONS_LIST_FETCHED": {
     "i18n_key": "admin.permissions.fetched",
     "http_status": 200,
     "code": "OK",
     "message": "Permissions fetched successfully."
+  },  "PERMISSION_FETCHED": {
+    "i18n_key": "admin.permission.fetched",
+    "http_status": 200,
+    "code": "OK",
+    "message": "Permission fetched successfully."
   }
 
 ,
@@ -176,6 +187,13 @@
     "message": "Roles for user fetched successfully."
   }
 
+,
+"PERMISSION_DELETED": {
+  "i18n_key": "admin.permission.deleted",
+  "http_status": 200,
+  "code": "OK",
+  "message": "Permission deleted successfully."
+}
 
 
 

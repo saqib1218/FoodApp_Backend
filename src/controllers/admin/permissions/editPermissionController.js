@@ -10,6 +10,9 @@ exports.editPermission = async (req, res, next) => {
     const { id } = req.params; // permission ID from URL
     const { key, name, description } = req.body;
 
+        // 2️⃣ Check permission
+    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.PERMISSION.EDIT);
+
     // 1️⃣ Validate required field: ID
     if (!id) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', {
@@ -19,8 +22,6 @@ exports.editPermission = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Check permission
-    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.PERMISSION.EDIT);
 
     // // 3️⃣ Check if permission exists
     const permissionCheck = await pool.query(

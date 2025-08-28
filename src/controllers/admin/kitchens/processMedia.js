@@ -1,50 +1,49 @@
-const { v4: uuidv4 } = require('uuid');
-const pool = require('../../../config/database'); // your DB pool
-const  BusinessError  = require('../../../lib/businessErrors');
+const { v4: uuidv4 } = require('uuid'); 
+const pool = require('../../../config/database'); 
+const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
-const { hasPermission } = require('../../../services/permissionService');
 const { publishImageProcessingEvent } = require('../../../events/imageProcessingEvent');
-
+const PERMISSIONS = require('../../../config/permissions');
+const { hasAdminPermissions } = require('../../../services/hasAdminPermissions'); // make sure this exists
 
 // Allowed types
 const ALLOWED_MEDIA_TYPES = ['image', 'video', 'audio'];
 const ALLOWED_CATEGORY_TYPES = ['logo', 'banner', 'thumbnail'];
 
 exports.processMedia = async (req, res, next) => {
-  const { kitchenId } = req.params; // Get kitchenId from URL params
+  const { kitchenId } = req.params; 
   const { mediaType, categoryType } = req.body;
-  const file = req.file; // multer puts uploaded file here
-  const { userId } = req.user;
+  const file = req.file; // multer upload
+  const { userId, ownerId } = req.user; // from token
   const traceId = req.traceId;
 
   try {
-    console.log('✅ Step 1: Validating binary file upload...');
-    
-    // Ensure file was uploaded (binary data only)
+    console.log('✅ Step 1: Checking user permission/ownership...');
+
+    // 🔑 Check admin permission first
+    const hasAdminPermission = await hasAdminPermissions(userId, PERMISSIONS.ADMIN.KITCHEN.ADD_MEDIA);
+    if (!hasAdminPermission && (!ownerId || ownerId !== userId)) {
+      throw new BusinessError('USER_NOT_AUTHORIZED', { traceId });
+    }
+    console.log(`✅ User ${userId} authorized for kitchen ${kitchenId}`);
+
+    console.log('✅ Step 2: Validating file upload...');
     if (!file) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', { traceId, details: ['file'] });
     }
 
-    // Validate file properties
     if (!file.mimetype || !file.size || !file.path) {
       throw new BusinessError('INVALID_FILE_UPLOAD', { traceId, details: ['File must be a valid binary upload'] });
     }
-
     console.log(`📁 File received: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
 
-    // Auto-detect mediaType from file mimetype if not provided
+    // Detect media type
     let detectedMediaType;
-    if (file.mimetype.startsWith('image/')) {
-      detectedMediaType = 'image';
-    } else if (file.mimetype.startsWith('video/')) {
-      detectedMediaType = 'video';
-    } else if (file.mimetype.startsWith('audio/')) {
-      detectedMediaType = 'audio';
-    }
+    if (file.mimetype.startsWith('image/')) detectedMediaType = 'image';
+    else if (file.mimetype.startsWith('video/')) detectedMediaType = 'video';
+    else if (file.mimetype.startsWith('audio/')) detectedMediaType = 'audio';
 
-    // Use provided mediaType or auto-detected one
     const finalMediaType = mediaType || detectedMediaType;
-    
     if (!finalMediaType || !ALLOWED_MEDIA_TYPES.includes(finalMediaType)) {
       throw new BusinessError('INVALID_TYPE', { traceId, details: [finalMediaType || 'unknown'] });
     }
@@ -52,32 +51,12 @@ exports.processMedia = async (req, res, next) => {
     if (categoryType && !ALLOWED_CATEGORY_TYPES.includes(categoryType)) {
       throw new BusinessError('INVALID_CATEGORY', { traceId, details: [categoryType] });
     }
-    
     console.log(`✅ Binary file validated: ${finalMediaType} type`);
 
-    console.log('✅ Step 2: Checking user owns kitchen...');
-    const kitchenResult = await pool.query(
-      'SELECT * FROM kitchen_users WHERE kitchen_id=$1 AND id=$2 AND deleted_at IS NULL LIMIT 1',
-      [kitchenId, userId]
-    );
-    const kitchen = kitchenResult.rows[0];
-    if (!kitchen) {
-      throw new BusinessError('USER_NOT_AUTHORIZED', { traceId });
-    }
-    console.log(`✅ User ${userId} owns kitchen ${kitchenId}`);
-
-    console.log('✅ Step 3: Checking permissions...');
-    const allowed = await hasPermission(userId, 'kitchen.media.create', kitchen.role);
-    if (!allowed) {
-      throw new BusinessError('USER_NOT_AUTHORIZED', { traceId });
-    }
-    console.log('✅ Permission granted');
-
-    console.log('✅ Step 4: Generating media ID...');
+    console.log('✅ Step 3: Generating media ID...');
     const mediaId = uuidv4();
-    console.log(`Generated media ID: ${mediaId}`);
 
-    console.log('✅ Step 5: Inserting media record into DB with status UPLOADING...');
+    console.log('✅ Step 4: Inserting media record into DB with status UPLOADING...');
     await pool.query(
       `INSERT INTO kitchen_media
         (id, kitchen_id, media_type, category_type, status, created_by, updated_by, created_at, updated_at)
@@ -86,40 +65,37 @@ exports.processMedia = async (req, res, next) => {
     );
     console.log('✅ Media record inserted with status: UPLOADING');
 
-    // 6️⃣ Async processing (non-blocking) → RabbitMQ worker will handle S3 upload and processing
- // 6️⃣ Async processing (non-blocking) → RabbitMQ worker will handle S3 upload and processing
-setImmediate(async () => {
-  try {
-    // Send event to RabbitMQ
-    await publishImageProcessingEvent({
-      mediaId,
-      filePath: file.path,
-      kitchenId,
-      userId,
-      categoryType: categoryType || null,
-      mediaType: finalMediaType
+    // Async processing
+    setImmediate(async () => {
+      try {
+        await publishImageProcessingEvent({
+          mediaId,
+          filePath: file.path,
+          kitchenId,
+          userId,
+          ownerId: ownerId || null,
+          hasAdminPermission: !!hasAdminPermission,
+          categoryType: categoryType || null,
+          mediaType: finalMediaType
+        });
+
+        console.log(`📨 Media ${mediaId} pushed to RabbitMQ for processing`);
+        await pool.query(
+          'UPDATE kitchen_media SET status=$1, updated_at=NOW() WHERE id=$2',
+          ['PROCESSING', mediaId]
+        );
+        console.log(`✅ Media ${mediaId} status updated to PROCESSING`);
+      } catch (err) {
+        console.error(`❌ Failed to push media ${mediaId} to RabbitMQ:`, err.message);
+        await pool.query(
+          'UPDATE kitchen_media SET status=$1, updated_at=NOW() WHERE id=$2',
+          ['FAILED', mediaId]
+        );
+      }
     });
 
-    console.log(`📨 Media ${mediaId} pushed to RabbitMQ for processing`);
-
-    // Optional: Update status to PROCESSING immediately after queueing
-    await pool.query(
-      'UPDATE kitchen_media SET status=$1, updated_at=NOW() WHERE id=$2',
-      ['PROCESSING', mediaId]
-    );
-    console.log(`✅ Media ${mediaId} status updated to PROCESSING`);
-
-  } catch (err) {
-    console.error(`❌ Failed to push media ${mediaId} to RabbitMQ:`, err.message);
-    await pool.query(
-      'UPDATE kitchen_media SET status=$1, updated_at=NOW() WHERE id=$2',
-      ['FAILED', mediaId]
-    );
-  }
-});
-
-    console.log('✅ Step 7: Responding immediately with 202 Accepted');
-    return sendSuccess(res, 'MEDIA_PROCESSING_STARTED', { mediaId }, traceId, 202); // 202 Accepted
+    console.log('✅ Step 5: Responding immediately with 202 Accepted');
+    return sendSuccess(res, 'MEDIA_PROCESSING_STARTED', { mediaId }, traceId, 202);
 
   } catch (err) {
     console.error('❌ Error in processMedia:', err.message);

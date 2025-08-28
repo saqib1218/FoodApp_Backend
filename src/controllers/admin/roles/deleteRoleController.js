@@ -3,13 +3,17 @@ const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const PERMISSIONS = require('../../../config/permissions'); 
+
 exports.deleteRole = async (req, res, next) => {
   const startTime = Date.now();
   try {
     const requestingUserId = req.user?.userId;
     const { id } = req.params; // role id
 
-    // 1️⃣ Validate required field: id
+    // 1️⃣ Permission check
+    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.ROLE.DELETE);
+
+    // 2️⃣ Validate required field: id
     if (!id) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', {
         details: { fields: ['id'] },
@@ -18,12 +22,9 @@ exports.deleteRole = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Permission check
- await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.ROLE.DELETE);
-
-    // 3️⃣ Check if role exists and is active
+    // 3️⃣ Check if role exists and is not deleted
     const roleCheck = await pool.query(
-      'SELECT id, is_active FROM admin_roles WHERE id = $1',
+      'SELECT id, is_active, deleted_at FROM admin_roles WHERE id = $1',
       [id]
     );
 
@@ -33,11 +34,12 @@ exports.deleteRole = async (req, res, next) => {
 
     const role = roleCheck.rows[0];
 
-    if (!role.is_active) {
+    if (role.deleted_at) {
+      // Already deleted
       throw new BusinessError('ROLE_NOT_FOUND', { traceId: req.traceId });
     }
 
-    // 4️⃣ Soft delete role by marking inactive and setting deleted_at
+    // 4️⃣ Soft delete role (mark deleted_at and optionally deactivate)
     await pool.query(
       `UPDATE admin_roles
        SET is_active = false,
@@ -46,7 +48,7 @@ exports.deleteRole = async (req, res, next) => {
       [id]
     );
 
-    // 5️⃣ Optionally, remove role assignments from users
+    // 5️⃣ Remove role assignments from users
     await pool.query(
       `DELETE FROM admin_user_roles WHERE role_id = $1`,
       [id]

@@ -1,10 +1,10 @@
 const { pool } = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
-const { hasPermission } = require('../../../services/permissionService');
-
+const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
+const PERMISSIONS = require('../../../config/permissions');
 /**
- * Add Kitchen Address
+ * Add Kitchen Address (Admin → goes into staging + main reference)
  * POST /kitchen/:kitchenId/addresses
  */
 exports.addKitchenAddress = async (req, res, next) => {
@@ -25,14 +25,15 @@ exports.addKitchenAddress = async (req, res, next) => {
     longitude,
     place_id,
     formatted_address,
-    map_link
+    map_link,
+    ownerUserId
   } = req.body;
 
-  const { userId } = req.user; // from auth middleware
-  const traceId = req.traceId;  // consistent trace ID
+  const adminUserId = req.user?.userId; // ✅ Admin from token
+  const traceId = req.trace_id;
 
   console.log('🔹 Incoming request to add kitchen address');
-  console.log('🔹 userId:', userId, 'kitchenId:', kitchenId);
+  console.log('🔹 adminUserId:', adminUserId, 'ownerUserId:', ownerUserId, 'kitchenId:', kitchenId);
   console.log('🔹 Request body:', req.body);
 
   // ✅ Validate required fields
@@ -43,51 +44,37 @@ exports.addKitchenAddress = async (req, res, next) => {
     }));
   }
 
-  try {
-    // ✅ Verify user belongs to a kitchen
-    let kitchenCheckQuery = `
-      SELECT kitchen_id
-      FROM kitchen_users
-      WHERE id = $1
-        AND deleted_at IS NULL
-    `;
-    const kitchenCheckParams = [userId];
+  if (!ownerUserId) {
+    return next(new BusinessError('MISSING_REQUIRED_FIELDS', {
+      traceId,
+      details: ['ownerUserId']
+    }));
+  }
 
-    const kitchenCheck = await pool.query(kitchenCheckQuery, kitchenCheckParams);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await hasAdminPermissions(userId, PERMISSIONS.ADMIN.KITCHEN.ADD_ADDRESS);
+
+    // 2️⃣ Verify kitchen belongs to this owner
+    const kitchenCheck = await client.query(
+      `SELECT ku.id 
+       FROM kitchen_users ku
+       WHERE ku.user_id = $1 AND ku.kitchen_id = $2 AND ku.deleted_at IS NULL`,
+      [ownerUserId, kitchenId]
+    );
 
     if (kitchenCheck.rowCount === 0) {
-      console.warn('❌ User does not belong to any kitchen');
-      return next(new BusinessError('USER_NOT_AUTHORIZED', { traceId }));
+      throw new BusinessError('INVALID_KITCHEN_OWNER_RELATION', { traceId });
     }
 
-    // If kitchenId is passed in params, verify user has access
-    if (kitchenId && !kitchenCheck.rows.some(r => r.kitchen_id === kitchenId)) {
-      console.warn('❌ User does not belong to this kitchenId:', kitchenId);
-      return next(new BusinessError('USER_NOT_AUTHORIZED', { traceId }));
-    }
-
-    // If kitchenId is missing in params, use the first kitchen assigned
-    if (!kitchenId) {
-      kitchenId = kitchenCheck.rows[0].kitchen_id;
-      console.log('🔹 Using user\'s first kitchenId:', kitchenId);
-    }
-
-    // ✅ Check permission for creating an address
-    console.log('🔹 Checking permission for kitchen.address.create');
-    const allowed = await hasPermission(userId, 'kitchen.address.create');
-    console.log('🔹 Permission result:', allowed);
-
-    if (!allowed) {
-      return next(new BusinessError('USER_NOT_AUTHORIZED', { traceId }));
-    }
-
-    // ✅ Insert new kitchen address
-    const result = await pool.query(
+    // 3️⃣ Insert into MAIN table
+    const mainResult = await client.query(
       `INSERT INTO kitchen_addresses 
        (kitchen_id, address_name, address_line1, address_line2, city, state, zone, postal_code, country, nearest_location, delivery_instruction, status, latitude, longitude, place_id, formatted_address, map_link, created_by, updated_by, created_at, updated_at)
        VALUES
        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,NOW(),NOW())
-       RETURNING *`,
+       RETURNING id`,
       [
         kitchenId,
         address_name || null,
@@ -106,16 +93,54 @@ exports.addKitchenAddress = async (req, res, next) => {
         place_id || null,
         formatted_address || null,
         map_link || null,
-        userId,
-        userId
+        adminUserId,
+        adminUserId
       ]
     );
 
-    // ✅ Return success
-    return sendSuccess(res, 'KITCHEN_ADDRESS_CREATED', result.rows[0], traceId);
+    const mainAddressId = mainResult.rows[0].id;
+
+    // 4️⃣ Insert into STAGING table
+    await client.query(
+      `INSERT INTO kitchen_addresses_staging
+       (kitchen_address_id, kitchen_id, address_name, address_line1, address_line2, city, state, zone, postal_code, country, nearest_location, delivery_instruction, status, latitude, longitude, place_id, formatted_address, map_link, created_by, updated_by, created_at, updated_at, owner_user_id)
+       VALUES
+       ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,NOW(),NOW(),$21)`,
+      [
+        mainAddressId,
+        kitchenId,
+        address_name || null,
+        address_line1,
+        address_line2 || null,
+        city,
+        state || null,
+        zone || null,
+        postal_code || null,
+        country,
+        nearest_location || null,
+        delivery_instruction || null,
+        status,
+        latitude || null,
+        longitude || null,
+        place_id || null,
+        formatted_address || null,
+        map_link || null,
+        adminUserId,
+        adminUserId,
+        ownerUserId
+      ]
+    );
+
+    await client.query('COMMIT');
+
+    console.log('✅ Kitchen address created successfully (main + staging)');
+    return sendSuccess(res, 'KITCHEN_ADDRESS_CREATED', { id: mainAddressId }, traceId);
 
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('❌ Error adding kitchen address:', err);
     return next(err);
+  } finally {
+    client.release();
   }
 };

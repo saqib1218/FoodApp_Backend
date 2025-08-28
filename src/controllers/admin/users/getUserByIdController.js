@@ -8,13 +8,13 @@ exports.getUserById = async (req, res, next) => {
   try {
     const targetUserId = req.params.id;
 
-    // Optional: validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    // ✅ Validate UUID format
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(targetUserId)) {
       return next(new BusinessError('USER_NOT_FOUND'));
     }
 
-    // Fetch user with roles, include deleted_at
     const query = `
       SELECT 
         u.id,
@@ -23,14 +23,14 @@ exports.getUserById = async (req, res, next) => {
         u.phone AS mobile_number,
         u.is_active,
         u.created_at,
-        u.deleted_at,  -- include deleted_at
+        u.deleted_at,
         COALESCE(
           json_agg(
             json_build_object(
               'role_id', r.id,
               'role_name', r.name,
               'is_active', r.is_active,
-              'deleted_at', r.deleted_at  -- include deleted_at for roles too
+              'deleted_at', r.deleted_at
             )
           ) FILTER (WHERE r.id IS NOT NULL), '[]'
         ) AS roles
@@ -47,12 +47,30 @@ exports.getUserById = async (req, res, next) => {
       return next(new BusinessError('USER_NOT_FOUND'));
     }
 
-    // Send response
+    // ✅ Convert snake_case → camelCase
+    const dbUser = rows[0];
+    const user = {
+      id: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      mobileNumber: dbUser.mobile_number,
+      isActive: dbUser.is_active,
+      createdAt: dbUser.created_at,
+      deletedAt: dbUser.deleted_at,
+      roles: dbUser.roles.map(r => ({
+        roleId: r.role_id,
+        roleName: r.role_name,
+        isActive: r.is_active,
+        deletedAt: r.deleted_at
+      }))
+    };
+
+    // ✅ Send response
     return sendSuccess(
       res,
       'USER_DETAILS_FETCHED',
       {
-        user: rows[0],
+        user,
         meta: { durationMs: Date.now() - startTime }
       },
       req.traceId

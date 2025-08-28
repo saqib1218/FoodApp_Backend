@@ -12,31 +12,42 @@ exports.editRole = async (req, res, next) => {
     const { id } = req.params; // role ID
     const { name, description, isActive, permissionIds } = req.body;
 
-    // 1️⃣ Validate required fields for PUT (full resource)
+    // 1️⃣ Strict field validation for PUT
     const missingFields = [];
     if (!id) missingFields.push('id');
-    if (!name) missingFields.push('name');
-    if (!description && description !== '') missingFields.push('description'); // allow empty string
+    if (name === undefined) missingFields.push('name');
+    if (description === undefined) missingFields.push('description'); // allow empty string but must exist
     if (isActive === undefined) missingFields.push('isActive');
-    if (!Array.isArray(permissionIds)) missingFields.push('permissionIds');
+    if (permissionIds === undefined) missingFields.push('permissionIds');
 
     if (missingFields.length > 0) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', { details: { fields: missingFields }, traceId: req.traceId });
+      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+        traceId: req.traceId,
+        details: { fields: missingFields }
+      });
     }
 
-    // 2️⃣ Check permission of requesting user
+    // 2️⃣ Type validation
+    if (!Array.isArray(permissionIds)) {
+      throw new BusinessError('INVALID_FIELD_TYPE', {
+        traceId: req.traceId,
+        details: { field: 'permissionIds', expected: 'array' }
+      });
+    }
+
+    // 3️⃣ Check permission of requesting user
     await hasAdminPermissions(userId, PERMISSIONS.ADMIN.ROLE.EDIT);
 
-    // 3️⃣ Begin transaction
+    // 4️⃣ Begin transaction
     await pool.query('BEGIN');
 
-    // 4️⃣ Ensure role exists
+    // 5️⃣ Ensure role exists
     const roleCheck = await pool.query('SELECT id FROM admin_roles WHERE id = $1', [id]);
     if (roleCheck.rowCount === 0) {
       throw new BusinessError('INVALID_ROLE', { traceId: req.traceId });
     }
 
-    // 5️⃣ Update role fields
+    // 6️⃣ Update role fields
     const updateRole = await pool.query(
       `UPDATE admin_roles
        SET name = $1, description = $2, is_active = $3,
@@ -47,21 +58,21 @@ exports.editRole = async (req, res, next) => {
     );
     const updatedRole = updateRole.rows[0];
 
-    // 6️⃣ Replace permissions
+    // 7️⃣ Replace permissions
     await pool.query('DELETE FROM admin_role_permissions WHERE role_id = $1', [id]);
 
     if (permissionIds.length > 0) {
-      const values = permissionIds.map((pid, i) => `($1, $${i + 2})`).join(', ');
+      const values = permissionIds.map((_, i) => `($1, $${i + 2})`).join(', ');
       await pool.query(
         `INSERT INTO admin_role_permissions (role_id, permission_id) VALUES ${values}`,
         [id, ...permissionIds]
       );
     }
 
-    // 7️⃣ Commit transaction
+    // 8️⃣ Commit transaction
     await pool.query('COMMIT');
 
-    // 8️⃣ Fetch full permission details
+    // 9️⃣ Fetch full permission details
     let permissions = [];
     if (permissionIds.length > 0) {
       const permQuery = `
@@ -73,13 +84,13 @@ exports.editRole = async (req, res, next) => {
       permissions = permRes.rows;
     }
 
-    // 9️⃣ Send response
+    // 🔟 Send response
     const role = {
       id: updatedRole.id,
       name: updatedRole.name,
       description: updatedRole.description,
       isActive: updatedRole.is_active,
-      permissions, 
+      permissions,
       createdAt: updatedRole.created_at,
       updatedAt: updatedRole.updated_at,
     };

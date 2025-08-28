@@ -5,16 +5,14 @@ const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const { validateRequiredFields, validateEmail, validateMobileNumber } = require('../../../utils/validation');
-const PERMISSIONS = require('../../../config/permissions'); // ✅ import permissions
+const PERMISSIONS = require('../../../config/permissions'); 
 
 exports.createUser = async (req, res, next) => {
   const startTime = Date.now();
   try {
     const requestingUserId = req.user?.userId;
-    console.log('[createUser] requestingUserId:', requestingUserId);
 
     const { name, email, mobileNumber, roleId } = req.body;
-    console.log('[createUser] body:', req.body);
 
     // 1️⃣ Validate required fields
     const missingFields = validateRequiredFields(req.body, ['name', 'email', 'roleId']);
@@ -39,26 +37,22 @@ exports.createUser = async (req, res, next) => {
     if (mobileNumber && !validateMobileNumber(mobileNumber)) {
       throw new BusinessError('INVALID_MOBILE_NUMBER_FORMAT', {
         details: { mobileNumber },
-      
         traceId: req.traceId,
         retryable: true,
       });
     }
 
-    // 2️⃣ Permission check (use constant instead of magic string)
+    // 2️⃣ Permission check
     await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.CREATE);
 
     // 3️⃣ Role check
     const roleCheck = await pool.query('SELECT id FROM admin_roles WHERE id = $1', [roleId]);
     if (roleCheck.rowCount === 0) {
-      throw new BusinessError('INVALID_ROLE', {
-  
-        traceId: req.traceId,
-      });
+      throw new BusinessError('INVALID_ROLE', { traceId: req.traceId });
     }
 
     // 4️⃣ Check for duplicate email or phone
-    let duplicateQuery = `
+    const duplicateQuery = `
       SELECT id, email, phone 
       FROM admin_users 
       WHERE email = $1 OR (phone IS NOT NULL AND phone = $2)
@@ -67,7 +61,7 @@ exports.createUser = async (req, res, next) => {
 
     if (duplicateCheck.rowCount > 0) {
       const existingUser = duplicateCheck.rows[0];
-      let conflictField = existingUser.email === email ? 'email' : 'phone';
+      const conflictField = existingUser.email === email ? 'email' : 'phone';
       throw new BusinessError('USER_ALREADY_EXISTS', {
         message: `User with this ${conflictField} already exists`,
         details: { conflictField },
@@ -84,7 +78,7 @@ exports.createUser = async (req, res, next) => {
     const insertQuery = `
       INSERT INTO admin_users (id, name, email, phone, password_hash, is_active)
       VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, name, email, phone AS mobile_number, is_active, created_at
+      RETURNING id, name, email, phone, is_active, created_at
     `;
     const result = await pool.query(insertQuery, [
       newUserId,
@@ -102,12 +96,12 @@ exports.createUser = async (req, res, next) => {
       [newUserId, roleId]
     );
 
-    // 8️⃣ Response formatting
+    // 8️⃣ Response mapping (camelCase)
     const user = {
       id: dbUser.id,
       name: dbUser.name,
       email: dbUser.email,
-      mobileNumber: dbUser.mobile_number,
+      mobileNumber: dbUser.phone,
       roleId: roleId,
       isActive: dbUser.is_active,
       createdAt: dbUser.created_at,

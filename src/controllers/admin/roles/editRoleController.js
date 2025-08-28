@@ -11,6 +11,8 @@ exports.editRole = async (req, res, next) => {
     const userId = req.user?.userId;
     const { id } = req.params; // role ID
     const { name, description, isActive, permissionIds } = req.body;
+       // 3️⃣ Check permission of requesting user
+    await hasAdminPermissions(userId, PERMISSIONS.ADMIN.ROLE.EDIT);
 
     // 1️⃣ Strict field validation for PUT
     const missingFields = [];

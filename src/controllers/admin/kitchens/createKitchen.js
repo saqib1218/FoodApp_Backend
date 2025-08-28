@@ -2,28 +2,34 @@ const { pool } = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
-const PERMISSIONS=require('../../../config/permissions')
+const PERMISSIONS = require('../../../config/permissions');
+
 exports.createKitchen = async (req, res, next) => {
   const client = await pool.connect();
   const traceId = req.traceId;
 
   try {
-    const { name, tagline, bio, ownerId } = req.body;
-
     // ✅ Ensure admin userId in token
     if (!req.user || !req.user.userId) {
       throw new BusinessError('USER_NOT_AUTHORIZED', { traceId });
     }
     const adminUserId = req.user.userId;
 
-    // ✅ Validate required fields
+    // 1️⃣ Check admin permission first
+    const allowed = await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.KITCHEN.CREATE);
+    if (!allowed) {
+      throw new BusinessError('USER_NOT_AUTHORIZED', { traceId });
+    }
+
+    const { name, tagline, bio, ownerId } = req.body;
+
+    // 2️⃣ Validate required fields
     const missingFields = [];
     if (!name) missingFields.push('name');
     if (!ownerId) missingFields.push('ownerId');
     if (missingFields.length > 0) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', { traceId, details: missingFields });
     }
-    await hasAdminPermissions(userId, PERMISSIONS.ADMIN.KITCHEN.CREATE);
 
     await client.query('BEGIN');
 

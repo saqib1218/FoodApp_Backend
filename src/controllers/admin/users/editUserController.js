@@ -14,6 +14,7 @@ exports.editUser = async (req, res, next) => {
     const requestingUserId = req.user?.userId;
     const { id } = req.params;
     const { name, email, mobileNumber, password, roleId, isActive } = req.body;
+        await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.EDIT);
 
     if (!id) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', {
@@ -23,7 +24,7 @@ exports.editUser = async (req, res, next) => {
       });
     }
 
-    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.EDIT);
+    
 
     // ✅ Check if user exists
     const userCheck = await pool.query(`SELECT id, email FROM admin_users WHERE id = $1`, [id]);

@@ -10,6 +10,7 @@ exports.createRole = async (req, res, next) => {
   try {
     const userId = req.user?.userId; // ✅ from validated access token
     const { name, description, isActive, permissionIds } = req.body;
+     await hasAdminPermissions(userId, PERMISSIONS.ADMIN.ROLE.CREATE);
 
     // 1️⃣ Validate ALL required fields
     const missingFields = validateRequiredFields(req.body, [
@@ -69,7 +70,7 @@ exports.createRole = async (req, res, next) => {
       }
     } else {
       // ✅ Create a new role
-      await hasAdminPermissions(userId, PERMISSIONS.ADMIN.ROLE.CREATE);
+     
 
       const { rows } = await pool.query(
         `INSERT INTO admin_roles (name, description, is_active, created_by)

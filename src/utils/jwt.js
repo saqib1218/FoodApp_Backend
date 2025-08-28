@@ -3,16 +3,16 @@ const jwt = require('jsonwebtoken');
 
 const generateAccessToken = (user) => {
   const payload = {
-    userId: user.userId || user.id,
+    userId: user.user_id || user.id,
     name: user.name || null,
     email: user.email || null,
-    phone: user.phone || null,
-    role: user.role || null,         // single role
-    is_active: user.is_active ?? true // default true if missing
+    mobileNumber: user.mobile_number || user.phone || null, // ✅ mobileNumber (camelCase)
+    role: user.role || null,   // single role
+    isActive: user.is_active ?? true // ✅ camelCase
   };
 
   return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '24h', // short-lived token
+    expiresIn: process.env.JWT_EXPIRES_IN || '24h',
   });
 };
 

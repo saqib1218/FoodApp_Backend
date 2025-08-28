@@ -7,8 +7,10 @@ const PERMISSIONS = require('../../../config/permissions');
 exports.deleteUser = async (req, res, next) => {
   const startTime = Date.now();
   try {
+
     const requestingUserId = req.user?.userId;
     const { id } = req.params; // user id to delete
+    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.DELETE);
 
     // 1️⃣ Validate required field: id
     if (!id) {
@@ -19,9 +21,6 @@ exports.deleteUser = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Permission check
-   
-await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.DELETE);
 
     // 3️⃣ Check if user exists
     const userRes = await pool.query(

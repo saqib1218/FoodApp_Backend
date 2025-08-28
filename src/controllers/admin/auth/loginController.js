@@ -23,7 +23,11 @@ exports.adminUserLogin = async (req, res, next) => {
 
     // 1.5️⃣ Validate email format
     if (!validateEmail(email)) {
-      throw new BusinessError('INVALID_EMAIL_FORMAT', { details: { email }, traceId: req.traceId, retryable: true });
+      throw new BusinessError('INVALID_EMAIL_FORMAT', {
+        details: { email },
+        traceId: req.traceId,
+        retryable: true,
+      });
     }
 
     // 2️⃣ Find the user
@@ -34,14 +38,14 @@ exports.adminUserLogin = async (req, res, next) => {
        LIMIT 1`,
       [email]
     );
-    const user = userResult.rows[0];
+    const dbUser = userResult.rows[0];
 
-    if (!user || user.deleted_at !== null || user.is_active === false) {
+    if (!dbUser || dbUser.deleted_at !== null || dbUser.is_active === false) {
       throw new BusinessError('USER_INACTIVE', { traceId: req.traceId });
     }
 
     // 3️⃣ Compare password
-    const isMatch = await bcrypt.compare(password, user.password_hash);
+    const isMatch = await bcrypt.compare(password, dbUser.password_hash);
     if (!isMatch) {
       throw new BusinessError('INVALID_CREDENTIALS', { traceId: req.traceId });
     }
@@ -55,7 +59,7 @@ exports.adminUserLogin = async (req, res, next) => {
        AND r.is_active = TRUE
        AND r.deleted_at IS NULL
        LIMIT 1`,
-      [user.id]
+      [dbUser.id]
     );
     const role = roleResult.rows[0];
 
@@ -63,26 +67,26 @@ exports.adminUserLogin = async (req, res, next) => {
       throw new BusinessError('USER_INACTIVE', { traceId: req.traceId });
     }
 
-    // 5️⃣ Generate access token (single role)
+    // 5️⃣ Generate access token (camelCase fields, mobileNumber instead of phone)
     const userForToken = {
-      userId: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      isActive: user.is_active,
+      userId: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      mobileNumber: dbUser.phone,
+      isActive: dbUser.is_active,
       role: role.name,
     };
 
     const accessToken = generateAccessToken(userForToken);
     console.log('Decoded Access Token:', decodeToken(accessToken));
 
-    // 6️⃣ Send response
+    // 6️⃣ Send response (camelCase keys)
     return sendSuccess(
       res,
       'USER_LOGIN_SUCCESS',
       {
-        access_token: accessToken,
-        meta: { duration_ms: Date.now() - startTime },
+        accessToken, // ✅ camelCase
+        meta: { durationMs: Date.now() - startTime }, // ✅ camelCase
       },
       req.traceId
     );

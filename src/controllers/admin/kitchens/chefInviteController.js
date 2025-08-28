@@ -3,7 +3,8 @@ const { pool } = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
-const PERMISSIONS=require('../../../config/permissions')
+const PERMISSIONS = require('../../../config/permissions');
+
 /**
  * Create Chef Invitation (Admin)
  * POST /kitchen/:kitchenId/chef-invitations
@@ -15,24 +16,20 @@ exports.createChefInvitation = async (req, res, next) => {
   const { ownerUserId, mobileNumber, role } = req.body;
 
   try {
-    // 1️⃣ Validate required fields
+    // 1️⃣ Check admin permission first
+    const allowed = await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.KITCHEN.INVITE_CHEF);
+    if (!allowed) {
+      return next(new BusinessError('USER_NOT_AUTHORIZED', { traceId }));
+    }
+
+    // 2️⃣ Validate required fields
     const missingFields = [];
     if (!ownerUserId) missingFields.push('ownerUserId');
     if (!mobileNumber) missingFields.push('mobileNumber');
     if (!role) missingFields.push('role');
 
     if (missingFields.length > 0) {
-      return next(
-        new BusinessError('MISSING_REQUIRED_FIELDS', { traceId, details: missingFields })
-      );
-    }
-
-    // 2️⃣ Check admin permission
-    const allowed = await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.KITCHEN.INVITE_CHEF);
-    if (!allowed) {
-      return next(
-        new BusinessError('USER_NOT_AUTHORIZED', { traceId })
-      );
+      return next(new BusinessError('MISSING_REQUIRED_FIELDS', { traceId, details: missingFields }));
     }
 
     // 3️⃣ Verify kitchen belongs to the owner
@@ -44,15 +41,13 @@ exports.createChefInvitation = async (req, res, next) => {
     );
 
     if (kitchenCheck.rowCount === 0) {
-      return next(
-        new BusinessError('INVALID_KITCHEN_OWNER_RELATION', { traceId })
-      );
+      return next(new BusinessError('INVALID_KITCHEN_OWNER_RELATION', { traceId }));
     }
 
     // 4️⃣ Generate invitation code
     const invitation_code = crypto.randomBytes(4).toString('hex');
 
-    // 5️⃣ Expiry (7 days)
+    // 5️⃣ Set expiry (7 days)
     const expires_at = new Date();
     expires_at.setDate(expires_at.getDate() + 7);
 

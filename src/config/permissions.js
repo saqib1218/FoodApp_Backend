@@ -21,6 +21,16 @@ ROLE: {
     DELETE: "admin.permission.delete",
     LIST_VIEW: "admin.permission.list.view", // ✅ permission to view permission details
   },
+KITCHEN: {
+  CREATE: "admin.kitchen.create",
+  EDIT: "admin.kitchen.edit",
+  DELETE: "admin.kitchen.delete",
+  LIST_VIEW: "admin.kitchen.list.view",        // ✅ view list of kitchens
+  ADD_ADDRESS: "admin.kitchen.address.add",    // ✅ add kitchen address
+  AVAILABILITY: "admin.kitchen.availability.add", 
+  INVITE_CHEF:"admin.kitchen.chef.invite" // ✅ manage kitchen availability
+}
+
   },
 };
 

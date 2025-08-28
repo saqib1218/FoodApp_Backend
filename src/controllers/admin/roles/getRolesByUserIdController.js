@@ -35,14 +35,23 @@ exports.getRolesByUserId = async (req, res, next) => {
       ORDER BY r.created_at DESC
     `;
     const rolesRes = await pool.query(rolesQuery, values);
-    const roles = rolesRes.rows;
 
-    if (!roles.length) {
+    if (!rolesRes.rows.length) {
       return next(new BusinessError('USER_NOT_FOUND'));
     }
 
+    // ✅ Convert role rows into camelCase
+    const roles = rolesRes.rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      isActive: r.is_active,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+
     // 3️⃣ Fetch permissions for all roles at once
-    const roleIds = roles.map(r => r.id);
+    const roleIds = roles.map((r) => r.id);
     const permissionsQuery = `
       SELECT rp.role_id, p.id AS permission_id, p.key, p.name, p.description
       FROM admin_role_permissions rp
@@ -51,20 +60,20 @@ exports.getRolesByUserId = async (req, res, next) => {
     `;
     const permissionsRes = await pool.query(permissionsQuery, [roleIds]);
 
-    // 4️⃣ Group permissions by role_id
+    // 4️⃣ Group permissions by roleId
     const permissionMap = {};
-    permissionsRes.rows.forEach(p => {
+    permissionsRes.rows.forEach((p) => {
       if (!permissionMap[p.role_id]) permissionMap[p.role_id] = [];
       permissionMap[p.role_id].push({
         id: p.permission_id,
         key: p.key,
         name: p.name,
-        description: p.description
+        description: p.description,
       });
     });
 
-    // 5️⃣ Attach permissions to roles
-    roles.forEach(r => {
+    // 5️⃣ Attach permissions (camelCase response)
+    roles.forEach((r) => {
       r.permissions = permissionMap[r.id] || [];
     });
 
@@ -78,7 +87,6 @@ exports.getRolesByUserId = async (req, res, next) => {
       },
       req.traceId
     );
-
   } catch (err) {
     return next(err);
   }

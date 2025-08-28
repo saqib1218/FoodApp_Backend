@@ -5,17 +5,16 @@ const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const { validateEmail, validateMobileNumber } = require('../../../utils/validation');
 const { validateUserActionTime } = require('../../../services/validators/userActionValidator');
-const PERMISSIONS = require('../../../config/permissions'); // ✅ permission constants
+const PERMISSIONS = require('../../../config/permissions');
 
 exports.editUser = async (req, res, next) => {
   const startTime = Date.now();
 
   try {
     const requestingUserId = req.user?.userId;
-    const { id } = req.params; // user id from URL
+    const { id } = req.params;
     const { name, email, mobileNumber, password, roleId, isActive } = req.body;
 
-    // 1️⃣ Validate required field: id
     if (!id) {
       throw new BusinessError('MISSING_REQUIRED_FIELDS', {
         details: { fields: ['id'] },
@@ -24,46 +23,27 @@ exports.editUser = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Permission check
     await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.EDIT);
 
-    // 3️⃣ Check if user exists
-    const userCheck = await pool.query(
-      `SELECT id, email FROM admin_users WHERE id = $1`,
-      [id]
-    );
+    // ✅ Check if user exists
+    const userCheck = await pool.query(`SELECT id, email FROM admin_users WHERE id = $1`, [id]);
     if (userCheck.rowCount === 0) {
       throw new BusinessError('USER_NOT_FOUND', { traceId: req.traceId });
     }
 
-    // 4️⃣ Validate email if provided
+    // ✅ Validation
     if (email && !validateEmail(email)) {
-      throw new BusinessError('INVALID_EMAIL_FORMAT', {
-        details: { email },
-        traceId: req.traceId,
-      });
+      throw new BusinessError('INVALID_EMAIL_FORMAT', { details: { email }, traceId: req.traceId });
     }
-
-    // 5️⃣ Validate mobile number if provided
     if (mobileNumber && !validateMobileNumber(mobileNumber)) {
-      throw new BusinessError('INVALID_MOBILE_NUMBER_FORMAT', {
-        details: { mobileNumber },
-        traceId: req.traceId,
-      });
+      throw new BusinessError('INVALID_MOBILE_NUMBER_FORMAT', { details: { mobileNumber }, traceId: req.traceId });
     }
-
-    // 6️⃣ Check if role exists (only if provided)
     if (roleId) {
-      const roleCheck = await pool.query(
-        'SELECT id FROM admin_roles WHERE id = $1',
-        [roleId]
-      );
-      if (roleCheck.rowCount === 0) {
-        throw new BusinessError('INVALID_ROLE', { traceId: req.traceId });
-      }
+      const roleCheck = await pool.query('SELECT id FROM admin_roles WHERE id = $1', [roleId]);
+      if (roleCheck.rowCount === 0) throw new BusinessError('INVALID_ROLE', { traceId: req.traceId });
     }
 
-    // 7️⃣ Prepare fields for update
+    // ✅ Build dynamic updates
     const fieldsToUpdate = [];
     const values = [];
     let idx = 1;
@@ -77,7 +57,6 @@ exports.editUser = async (req, res, next) => {
       values.push(passwordHash);
     }
 
-    // 8️⃣ Handle isActive separately with validator
     if (isActive !== undefined) {
       if (typeof isActive !== 'boolean') {
         throw new BusinessError('INVALID_STATUS_FORMAT', {
@@ -86,48 +65,63 @@ exports.editUser = async (req, res, next) => {
         });
       }
       try {
-        await validateUserActionTime(id); // only allow status update if valid
+        await validateUserActionTime(id);
         fieldsToUpdate.push(`is_active = $${idx++}`);
         values.push(isActive);
       } catch (err) {
-        if (err instanceof BusinessError && err.code === 'USER_ACTION_NOT_ALLOWED') {
-          console.warn(`[editUser] Skipped isActive update for user ${id}: ${err.message}`);
-        } else {
+        if (!(err instanceof BusinessError && err.code === 'USER_ACTION_NOT_ALLOWED')) {
           throw err;
         }
       }
     }
 
-    // 9️⃣ Run update if any fields to update
+    // ✅ Run update if needed
     if (fieldsToUpdate.length > 0) {
       const updateQuery = `
         UPDATE admin_users
-        SET ${fieldsToUpdate.join(', ')}
+        SET ${fieldsToUpdate.join(', ')}, updated_at = NOW()
         WHERE id = $${idx}
-        RETURNING id, name, email, phone AS mobile_number, is_active, created_at
       `;
       values.push(id);
       await pool.query(updateQuery, values);
     }
 
-    // 🔟 Handle role replacement (user has one role at a time)
+    // ✅ Replace role if provided
     if (roleId) {
       await pool.query(`DELETE FROM admin_user_roles WHERE admin_user_id = $1`, [id]);
-      await pool.query(`INSERT INTO admin_user_roles (admin_user_id, role_id) VALUES ($1, $2)`, [id, roleId]);
+      await pool.query(
+        `INSERT INTO admin_user_roles (admin_user_id, role_id) VALUES ($1, $2)`,
+        [id, roleId]
+      );
     }
 
-    // 1️⃣1️⃣ Fetch updated user with role
+    // ✅ Fetch updated user
     const updatedUserRes = await pool.query(`
-      SELECT u.id, u.name, u.email, u.phone AS mobile_number, u.is_active, u.created_at, r.role_id
+      SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at, r.role_id
       FROM admin_users u
       LEFT JOIN admin_user_roles r ON u.id = r.admin_user_id
       WHERE u.id = $1
     `, [id]);
 
-    const updatedUser = updatedUserRes.rows[0];
+    const dbUser = updatedUserRes.rows[0];
 
-    // 1️⃣2️⃣ Send response
-    return sendSuccess(res, 'USER_UPDATED', { user: updatedUser, meta: { durationMs: Date.now() - startTime } }, req.traceId);
+    // ✅ Format response in camelCase
+    const user = {
+      id: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      mobileNumber: dbUser.phone,
+      roleId: dbUser.role_id,
+      isActive: dbUser.is_active,
+      createdAt: dbUser.created_at,
+    };
+
+    return sendSuccess(
+      res,
+      'USER_UPDATED',
+      { user, meta: { durationMs: Date.now() - startTime } },
+      req.traceId
+    );
 
   } catch (err) {
     return next(err);

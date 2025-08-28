@@ -39,7 +39,17 @@ exports.getRoleById = async (req, res, next) => {
       return next(new BusinessError('ROLE_NOT_FOUND'));
     }
 
-    const role = roleRes.rows[0];
+    const dbRole = roleRes.rows[0];
+
+    // ✅ Convert to camelCase
+    const role = {
+      id: dbRole.id,
+      name: dbRole.name,
+      description: dbRole.description,
+      isActive: dbRole.is_active,
+      createdAt: dbRole.created_at,
+      updatedAt: dbRole.updated_at,
+    };
 
     // 3️⃣ Fetch permissions for this role
     const permissionsQuery = `
@@ -50,11 +60,11 @@ exports.getRoleById = async (req, res, next) => {
     `;
     const permissionsRes = await pool.query(permissionsQuery, [roleId]);
 
-    role.permissions = permissionsRes.rows.map(p => ({
+    role.permissions = permissionsRes.rows.map((p) => ({
       id: p.permission_id,
       key: p.key,
       name: p.name,
-      description: p.description
+      description: p.description,
     }));
 
     // 4️⃣ Send response
@@ -67,7 +77,6 @@ exports.getRoleById = async (req, res, next) => {
       },
       req.traceId
     );
-
   } catch (err) {
     console.error('[getRoleById] Error:', err);
     return next(err);

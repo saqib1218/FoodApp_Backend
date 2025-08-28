@@ -21,7 +21,7 @@ exports.getUsers = async (req, res, next) => {
       deleted // true/false filter for deleted users
     } = req.query;
 
-    // 3️⃣ Build dynamic WHERE clauses (⚡ no pagination)
+    // 3️⃣ Build dynamic WHERE clauses
     const conditions = [];
     const values = [];
     let idx = 1;
@@ -49,7 +49,7 @@ exports.getUsers = async (req, res, next) => {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // 4️⃣ Fetch users (⚡ no LIMIT/OFFSET)
+    // 4️⃣ Fetch users
     const usersQuery = `
       SELECT u.id, u.name, u.email, u.phone AS mobile_number, u.is_active, u.created_at, u.deleted_at,
              COALESCE(
@@ -72,17 +72,29 @@ exports.getUsers = async (req, res, next) => {
     `;
 
     const usersRes = await pool.query(usersQuery, values);
-    const users = usersRes.rows;
 
-    // 5️⃣ Send response (⚡ no pagination metadata)
+    // 5️⃣ Map snake_case → camelCase
+    const users = usersRes.rows.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      mobileNumber: u.mobile_number,
+      isActive: u.is_active,
+      createdAt: u.created_at,
+      deletedAt: u.deleted_at,
+      roles: u.roles.map(r => ({
+        roleId: r.role_id,
+        roleName: r.role_name
+      }))
+    }));
+
+    // 6️⃣ Send response
     return sendSuccess(
       res,
       'USERS_LIST_FETCHED',
       {
         users,
-        meta: {
-          durationMs: Date.now() - startTime
-        }
+        meta: { durationMs: Date.now() - startTime }
       },
       req.traceId
     );

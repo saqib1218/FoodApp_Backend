@@ -2,7 +2,7 @@ const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
-const PERMISSIONS = require('../../../config/permissions'); 
+const PERMISSIONS = require('../../../config/permissions');
 
 exports.getRoles = async (req, res, next) => {
   const startTime = Date.now();
@@ -41,11 +41,20 @@ exports.getRoles = async (req, res, next) => {
       ORDER BY r.created_at DESC
     `;
     const rolesRes = await pool.query(rolesQuery, values);
-    const roles = rolesRes.rows;
+
+    // ✅ Convert role rows into camelCase
+    const roles = rolesRes.rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      isActive: r.is_active,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
 
     // 4️⃣ Fetch permissions for all roles at once
     if (roles.length > 0) {
-      const roleIds = roles.map(r => r.id);
+      const roleIds = roles.map((r) => r.id);
       const permissionsQuery = `
         SELECT rp.role_id, p.id AS permission_id, p.key, p.name, p.description
         FROM admin_role_permissions rp
@@ -55,17 +64,18 @@ exports.getRoles = async (req, res, next) => {
       const permissionsRes = await pool.query(permissionsQuery, [roleIds]);
 
       const permissionMap = {};
-      permissionsRes.rows.forEach(p => {
+      permissionsRes.rows.forEach((p) => {
         if (!permissionMap[p.role_id]) permissionMap[p.role_id] = [];
         permissionMap[p.role_id].push({
           id: p.permission_id,
           key: p.key,
           name: p.name,
-          description: p.description
+          description: p.description,
         });
       });
 
-      roles.forEach(r => {
+      // ✅ Attach permissions in camelCase
+      roles.forEach((r) => {
         r.permissions = permissionMap[r.id] || [];
       });
     }
@@ -82,7 +92,6 @@ exports.getRoles = async (req, res, next) => {
       },
       req.traceId
     );
-
   } catch (err) {
     return next(err);
   }

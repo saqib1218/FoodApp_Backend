@@ -10,6 +10,8 @@ exports.createPermission = async (req, res, next) => {
   try {
     const userId = req.user?.userId;
     const { key, name, description } = req.body;
+       // 2️⃣ Permission check
+    await hasAdminPermissions(userId, PERMISSIONS.ADMIN.PERMISSION.CREATE);
 
     // 1️⃣ Validate input
     const missingFields = validateRequiredFields(req.body, ['key', 'name']);
@@ -21,8 +23,7 @@ exports.createPermission = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Permission check
-    await hasAdminPermissions(userId, PERMISSIONS.ADMIN.PERMISSION.CREATE);
+  
 
     // 3️⃣ Check if key exists (with or without deletion)
     const checkQuery = `

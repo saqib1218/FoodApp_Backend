@@ -13,6 +13,7 @@ exports.createUser = async (req, res, next) => {
     const requestingUserId = req.user?.userId;
 
     const { name, email, mobileNumber, roleId } = req.body;
+       await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.CREATE);
 
     // 1️⃣ Validate required fields
     const missingFields = validateRequiredFields(req.body, ['name', 'email', 'roleId']);
@@ -42,8 +43,7 @@ exports.createUser = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Permission check
-    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.CREATE);
+ 
 
     // 3️⃣ Role check
     const roleCheck = await pool.query('SELECT id FROM admin_roles WHERE id = $1', [roleId]);

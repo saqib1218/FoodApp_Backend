@@ -1,14 +1,21 @@
 const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
-const { getPagination } = require('../../../utils/getPagination');
+const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
+const PERMISSIONS = require('../../../config/permissions'); 
 
 exports.getRoles = async (req, res, next) => {
   const startTime = Date.now();
+
   try {
-    // 1️⃣ Extract filters & pagination/lazy loading
-    const { name, isActive, page, limit, lastId } = req.query;
-    const paging = getPagination({ page, limit, lastId, defaultLimit: 20 });
+    // ✅ Get user ID from authenticated request (token)
+    const userId = req.user?.userId;
+
+    // ✅ Check if user has permission to view roles
+    await hasAdminPermissions(userId, PERMISSIONS.ADMIN.ROLE.LIST_VIEW);
+
+    // 1️⃣ Extract filters
+    const { name, isActive } = req.query;
 
     // 2️⃣ Build dynamic WHERE clauses
     const whereClauses = ['r.deleted_at IS NULL']; // exclude deleted roles
@@ -23,27 +30,16 @@ exports.getRoles = async (req, res, next) => {
       whereClauses.push(`r.is_active = $${idx++}`);
       values.push(isActive === 'true');
     }
-    if (paging.type === 'lazy' && paging.lastId) {
-      whereClauses.push(`r.id > $${idx++}`);
-      values.push(paging.lastId);
-    }
 
     const whereSQL = 'WHERE ' + whereClauses.join(' AND ');
 
-    // 3️⃣ Fetch roles
+    // 3️⃣ Fetch roles (⚡ no pagination)
     const rolesQuery = `
       SELECT r.id, r.name, r.description, r.is_active, r.created_at, r.updated_at
       FROM admin_roles r
       ${whereSQL}
       ORDER BY r.created_at DESC
-      LIMIT $${idx++} ${paging.type === 'pagination' ? `OFFSET $${idx++}` : ''}
     `;
-    if (paging.type === 'pagination') {
-      values.push(paging.limit, paging.offset);
-    } else {
-      values.push(paging.limit);
-    }
-
     const rolesRes = await pool.query(rolesQuery, values);
     const roles = rolesRes.rows;
 
@@ -58,7 +54,6 @@ exports.getRoles = async (req, res, next) => {
       `;
       const permissionsRes = await pool.query(permissionsQuery, [roleIds]);
 
-      // Group permissions by role_id
       const permissionMap = {};
       permissionsRes.rows.forEach(p => {
         if (!permissionMap[p.role_id]) permissionMap[p.role_id] = [];
@@ -70,34 +65,18 @@ exports.getRoles = async (req, res, next) => {
         });
       });
 
-      // Attach permissions to roles
       roles.forEach(r => {
         r.permissions = permissionMap[r.id] || [];
       });
     }
 
-    // 5️⃣ Total count for pagination only
-    let total = null;
-    if (paging.type === 'pagination') {
-      const countQuery = `SELECT COUNT(*) AS total FROM admin_roles r ${whereSQL}`;
-      const countRes = await pool.query(
-        countQuery,
-        values.slice(0, values.length - (paging.type === 'pagination' ? 2 : 1))
-      );
-      total = parseInt(countRes.rows[0].total, 10);
-    }
-
-    // 6️⃣ Send response
+    // 5️⃣ Send response (⚡ no pagination metadata)
     return sendSuccess(
       res,
       'ROLES_LIST_FETCHED',
       {
         roles,
         meta: {
-          total,
-          limit: paging.limit,
-          page: paging.type === 'pagination' ? parseInt(page) : undefined,
-          lastId: paging.type === 'lazy' ? paging.lastId : undefined,
           durationMs: Date.now() - startTime,
         },
       },

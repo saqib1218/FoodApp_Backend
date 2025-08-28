@@ -2,7 +2,7 @@ const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
-const { getPagination } = require('../../../utils/getPagination');
+const PERMISSIONS = require('../../../config/permissions'); 
 
 exports.getUsers = async (req, res, next) => {
   const startTime = Date.now();
@@ -10,7 +10,7 @@ exports.getUsers = async (req, res, next) => {
     const requestingUserId = req.user?.userId;
 
     // 1️⃣ Permission check
-    await hasAdminPermissions(requestingUserId, 'VIEW_USERS');
+    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.LIST_VIEW);
 
     // 2️⃣ Extract query params
     const {
@@ -18,16 +18,10 @@ exports.getUsers = async (req, res, next) => {
       email,
       roleId,
       isActive,
-      deleted, // true/false filter for deleted users
-      page,
-      limit,
-      lastId
+      deleted // true/false filter for deleted users
     } = req.query;
 
-    // 3️⃣ Pagination / lazy-loading
-    const paging = getPagination({ page, limit, lastId, defaultLimit: 20 });
-
-    // 4️⃣ Build dynamic WHERE clauses
+    // 3️⃣ Build dynamic WHERE clauses (⚡ no pagination)
     const conditions = [];
     const values = [];
     let idx = 1;
@@ -52,14 +46,10 @@ exports.getUsers = async (req, res, next) => {
       if (deleted === 'true') conditions.push(`u.deleted_at IS NOT NULL`);
       else conditions.push(`u.deleted_at IS NULL`);
     }
-    if (paging.type === 'lazy' && paging.lastId) {
-      conditions.push(`u.id > $${idx++}`);
-      values.push(paging.lastId);
-    }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // 5️⃣ Fetch users
+    // 4️⃣ Fetch users (⚡ no LIMIT/OFFSET)
     const usersQuery = `
       SELECT u.id, u.name, u.email, u.phone AS mobile_number, u.is_active, u.created_at, u.deleted_at,
              COALESCE(
@@ -79,41 +69,18 @@ exports.getUsers = async (req, res, next) => {
       ${whereClause}
       GROUP BY u.id
       ORDER BY u.created_at DESC
-      LIMIT $${idx++} ${paging.type === 'pagination' ? `OFFSET $${idx++}` : ''}
     `;
-    if (paging.type === 'pagination') {
-      values.push(paging.limit, paging.offset);
-    } else {
-      values.push(paging.limit);
-    }
 
     const usersRes = await pool.query(usersQuery, values);
     const users = usersRes.rows;
 
-    // 6️⃣ Total count for pagination
-    let total = null;
-    if (paging.type === 'pagination') {
-      const countQuery = `
-        SELECT COUNT(*) AS total
-        FROM admin_users u
-        LEFT JOIN admin_user_roles r ON u.id = r.admin_user_id
-        ${whereClause}
-      `;
-      const countRes = await pool.query(countQuery, values.slice(0, values.length - 2));
-      total = parseInt(countRes.rows[0].total, 10);
-    }
-
-    // 7️⃣ Send response
+    // 5️⃣ Send response (⚡ no pagination metadata)
     return sendSuccess(
       res,
       'USERS_LIST_FETCHED',
       {
         users,
         meta: {
-          total,
-          limit: paging.limit,
-          offset: paging.type === 'pagination' ? paging.offset : undefined,
-          lastId: paging.type === 'lazy' ? paging.lastId : undefined,
           durationMs: Date.now() - startTime
         }
       },

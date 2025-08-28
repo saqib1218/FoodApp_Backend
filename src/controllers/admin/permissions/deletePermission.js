@@ -2,6 +2,7 @@ const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
+const PERMISSIONS = require('../../../config/permissions');
 
 exports.deletePermission = async (req, res, next) => {
   const startTime = Date.now();
@@ -19,9 +20,12 @@ exports.deletePermission = async (req, res, next) => {
     }
 
     // 1️⃣ Check permission of the requesting user
-    await hasAdminPermissions(requestingUserId, 'DELETE_PERMISSION');
+    await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.PERMISSION.DELETE);
 
-    // 2️⃣ Soft delete: set deleted_at
+    // 2️⃣ Start transaction
+    await pool.query('BEGIN');
+
+    // 3️⃣ Soft delete the permission
     const updateQuery = `
       UPDATE admin_permissions
       SET deleted_at = NOW(),
@@ -33,13 +37,23 @@ exports.deletePermission = async (req, res, next) => {
     const result = await pool.query(updateQuery, [permissionId, requestingUserId]);
 
     if (!result.rows.length) {
+      await pool.query('ROLLBACK');
       throw new BusinessError('PERMISSION_NOT_FOUND', {
         details: { id: permissionId },
         traceId: req.traceId,
       });
     }
 
-    // 3️⃣ Send success response
+    // 4️⃣ Remove linked role permissions (optional)
+    await pool.query(
+      `DELETE FROM admin_role_permissions WHERE permission_id = $1`,
+      [permissionId]
+    );
+
+    // 5️⃣ Commit transaction
+    await pool.query('COMMIT');
+
+    // 6️⃣ Send success response
     return sendSuccess(
       res,
       'PERMISSION_DELETED',
@@ -51,6 +65,8 @@ exports.deletePermission = async (req, res, next) => {
     );
 
   } catch (err) {
+    // Rollback in case of error
+    try { await pool.query('ROLLBACK'); } catch (_) {}
     return next(err);
   }
 };

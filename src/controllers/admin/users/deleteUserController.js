@@ -2,6 +2,7 @@ const pool = require('../../../config/database');
 const BusinessError = require('../../../lib/businessErrors');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
+const PERMISSIONS = require('../../../config/permissions');
 
 exports.deleteUser = async (req, res, next) => {
   const startTime = Date.now();
@@ -19,7 +20,8 @@ exports.deleteUser = async (req, res, next) => {
     }
 
     // 2️⃣ Permission check
-    await hasAdminPermissions(requestingUserId, 'DELETE_USER');
+   
+await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.DELETE);
 
     // 3️⃣ Check if user exists
     const userRes = await pool.query(

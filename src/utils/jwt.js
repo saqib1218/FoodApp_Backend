@@ -1,14 +1,14 @@
 const jwt = require('jsonwebtoken');
 
-
+// Generate Access Token
 const generateAccessToken = (user) => {
   const payload = {
-    userId: user.user_id || user.id,
+    userId: user.userId || user.user_id || user.id,  // ✅ handle all cases
     name: user.name || null,
     email: user.email || null,
-    mobileNumber: user.mobile_number || user.phone || null, // ✅ mobileNumber (camelCase)
-    role: user.role || null,   // single role
-    isActive: user.is_active ?? true // ✅ camelCase
+    mobileNumber: user.mobileNumber || user.mobile_number || user.phone || null,
+    role: user.role || null,
+    isActive: user.isActive ?? user.is_active ?? true
   };
 
   return jwt.sign(payload, process.env.JWT_SECRET, {
@@ -16,10 +16,6 @@ const generateAccessToken = (user) => {
   });
 };
 
-module.exports = { generateAccessToken };
-
-
-module.exports = { generateAccessToken };
 
 // Generate Refresh Token
 const generateRefreshToken = (user) => {
@@ -67,6 +63,7 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
+// ✅ Export everything only once
 module.exports = {
   generateAccessToken,
   generateRefreshToken,

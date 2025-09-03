@@ -18,7 +18,7 @@ exports.createUser = async (req, res, next) => {
     // 1️⃣ Validate required fields
     const missingFields = validateRequiredFields(req.body, ['name', 'email', 'roleId']);
     if (missingFields.length > 0) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: missingFields },
         traceId: req.traceId,
         retryable: true,
@@ -27,7 +27,7 @@ exports.createUser = async (req, res, next) => {
 
     // 1.5️⃣ Validate email
     if (!validateEmail(email)) {
-      throw new BusinessError('INVALID_EMAIL_FORMAT', {
+      throw new BusinessError('COMMON.INVALID_EMAIL_FORMAT', {
         details: { email },
         traceId: req.traceId,
         retryable: true,
@@ -36,7 +36,7 @@ exports.createUser = async (req, res, next) => {
 
     // 1.6️⃣ Validate phone
     if (mobileNumber && !validateMobileNumber(mobileNumber)) {
-      throw new BusinessError('INVALID_MOBILE_NUMBER_FORMAT', {
+      throw new BusinessError('COMMON.INVALID_MOBILE_NUMBER_FORMAT', {
         details: { mobileNumber },
         traceId: req.traceId,
         retryable: true,
@@ -48,7 +48,10 @@ exports.createUser = async (req, res, next) => {
     // 3️⃣ Role check
     const roleCheck = await pool.query('SELECT id FROM admin_roles WHERE id = $1', [roleId]);
     if (roleCheck.rowCount === 0) {
-      throw new BusinessError('INVALID_ROLE', { traceId: req.traceId });
+      throw new BusinessError('ADMIN.ROLE_NOT_FOUND', {
+        details: { roleId },
+        traceId: req.traceId,
+      });
     }
 
     // 4️⃣ Check for duplicate email or phone
@@ -62,14 +65,14 @@ exports.createUser = async (req, res, next) => {
     if (duplicateCheck.rowCount > 0) {
       const existingUser = duplicateCheck.rows[0];
       const conflictField = existingUser.email === email ? 'email' : 'phone';
-      throw new BusinessError('USER_ALREADY_EXISTS', {
+      throw new BusinessError('ADMIN.USER_ALREADY_EXISTS', {
         message: `User with this ${conflictField} already exists`,
         details: { conflictField },
         traceId: req.traceId,
       });
     }
 
-    // 5️⃣ Default password
+    // 5️⃣ Default passwordS
     const defaultPassword = '12345678';
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
@@ -108,12 +111,12 @@ exports.createUser = async (req, res, next) => {
     };
 
     // 9️⃣ Success
-    return sendSuccess(
-      res,
-      'USER_CREATED',
-      { user, meta: { durationMs: Date.now() - startTime } },
-      req.traceId
-    );
+    return sendSuccess(res, 'ADMIN.USER_CREATED', {
+      userId: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      roleId: roleId,
+    }, req.traceId, { duration_ms: Date.now() - startTime });
 
   } catch (err) {
     console.error('[createUser] Error:', err);
@@ -124,7 +127,7 @@ exports.createUser = async (req, res, next) => {
       if (err.detail?.includes('(email)')) conflictField = 'email';
       if (err.detail?.includes('(phone)')) conflictField = 'phone';
 
-      return next(new BusinessError('USER_ALREADY_EXISTS', {
+      return next(new BusinessError('ADMIN.USER_ALREADY_EXISTS', {
         message: `User with this ${conflictField} already exists`,
         details: { conflictField },
         traceId: req.traceId,

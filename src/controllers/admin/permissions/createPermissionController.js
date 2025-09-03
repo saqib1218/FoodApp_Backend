@@ -16,7 +16,7 @@ exports.createPermission = async (req, res, next) => {
     // 1️⃣ Validate input
     const missingFields = validateRequiredFields(req.body, ['key', 'name']);
     if (missingFields.length > 0) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: missingFields },
         traceId: req.traceId,
         retryable: true,
@@ -38,7 +38,7 @@ exports.createPermission = async (req, res, next) => {
     if (existing) {
       if (!existing.deleted_at) {
         // Case: already exists & not deleted → throw duplication error
-        throw new BusinessError('PERMISSION_ALREADY_EXISTS', {
+        throw new BusinessError('ADMIN.PERMISSION_ALREADY_EXISTS', {
           details: { fields: ['key'], value: key },
           traceId: req.traceId,
           retryable: false,
@@ -65,7 +65,7 @@ exports.createPermission = async (req, res, next) => {
         const permission = reactivateResult.rows[0];
         return sendSuccess(
           res,
-          'PERMISSION_RESTORED',
+          'ADMIN.PERMISSION_RESTORED',
           { permission, meta: { duration_ms: Date.now() - startTime } },
           req.traceId
         );
@@ -89,7 +89,7 @@ exports.createPermission = async (req, res, next) => {
 
     return sendSuccess(
       res,
-      'PERMISSION_CREATED',
+      'ADMIN.PERMISSION_CREATED',
       { permission, meta: { duration_ms: Date.now() - startTime } },
       req.traceId
     );

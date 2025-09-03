@@ -37,7 +37,7 @@ exports.getRolesByUserId = async (req, res, next) => {
     const rolesRes = await pool.query(rolesQuery, values);
 
     if (!rolesRes.rows.length) {
-      return next(new BusinessError('USER_NOT_FOUND'));
+      return next(new BusinessError('ADMIN.USER_NOT_FOUND'));
     }
 
     // ✅ Convert role rows into camelCase
@@ -80,7 +80,7 @@ exports.getRolesByUserId = async (req, res, next) => {
     // 6️⃣ Send response
     return sendSuccess(
       res,
-      'ROLES_FOR_USER_FETCHED',
+      'ADMIN.ROLES_FOR_USER_FETCHED',
       {
         roles,
         meta: { durationMs: Date.now() - startTime },

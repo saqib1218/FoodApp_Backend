@@ -1,20 +1,28 @@
+// config/redisClient.js
 const Redis = require('ioredis');
 
-let redisClient;
+let redis = null;
+
+if (process.env.USE_REDIS === 'true') {
+  redis = new Redis({
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
+  });
+
+  redis.on('error', (err) => {
+    console.error('Redis client error:', err);
+  });
+}
 
 const getRedisClient = () => {
-  if (!redisClient && process.env.USE_REDIS === 'true') {
-    redisClient = new Redis({
-      host: process.env.REDIS_HOST || '127.0.0.1',
-      port: process.env.REDIS_PORT || 6379,
-      password: process.env.REDIS_PASSWORD || undefined,
-    });
-
-    redisClient.on('error', (err) => {
-      console.error('Redis client error:', err);
-    });
+  if (!redis) {
+    throw new Error('Redis client not initialized. Set USE_REDIS=true to enable.');
   }
-  return redisClient;
+  return redis;
 };
 
-module.exports = { getRedisClient };
+module.exports = {
+  redis,
+  getRedisClient,
+};

@@ -91,7 +91,7 @@ exports.getUsers = async (req, res, next) => {
     // 6️⃣ Send response
     return sendSuccess(
       res,
-      'USERS_LIST_FETCHED',
+      'ADMIN.USERS_LIST_FETCHED',
       {
         users,
         meta: { durationMs: Date.now() - startTime }

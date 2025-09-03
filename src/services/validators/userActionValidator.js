@@ -17,7 +17,7 @@ async function validateUserActionTime(userId) {
   const result = await pool.query(query, values);
 
   if (result.rows.length === 0) {
-    throw new BusinessError('USER_NOT_FOUND');
+    throw new BusinessError('ADMIN.USER_NOT_FOUND');
   }
 
   const createdAt = result.rows[0].created_at;
@@ -27,7 +27,7 @@ async function validateUserActionTime(userId) {
 const diffSeconds = (now - createdAt) / 1000; // difference in seconds
 
 if (diffSeconds < 10) {
-    throw new BusinessError('USER_ACTION_NOT_ALLOWED');
+    throw new BusinessError('ADMIN.USER_ACTION_NOT_ALLOWED');
   }
 
   return true;

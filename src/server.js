@@ -20,7 +20,8 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/admin/userRoutes');
 const roleRoutes = require('./routes/admin/roleRoutes');
 const permissionRoutes = require('./routes/admin/permissionRoutes');
-
+const adminKitchenRoutes=require('./routes/admin/kitchenRoutes');
+const adminPartnerRoutes=require('./routes/admin/partnerRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -61,6 +62,8 @@ app.use('/api/admin/auth',adminRoutes );
 app.use('/api/admin/users',userRoutes );
 app.use('/api/admin/roles',roleRoutes );
 app.use('/api/admin/permissions',permissionRoutes );
+app.use('/api/admin/kitchens',adminKitchenRoutes );
+app.use('/api/admin/partners',adminPartnerRoutes );
 // Add other routes here
 
 // -------------------- Health Check & Root --------------------

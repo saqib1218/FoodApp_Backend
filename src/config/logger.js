@@ -1,4 +1,3 @@
-// logger.js
 const pino = require('pino');
 
 const sensitiveKeys = new Set(['mobileNumber', 'phone', 'email', 'password', 'pin', 'token', 'cardNumber']);
@@ -56,7 +55,7 @@ const logger = pino({
 });
 
 /**
- * Fast Express logging middleware
+ * Express logging middleware
  */
 function loggingMiddleware(req, res, next) {
   const start = Date.now();
@@ -80,16 +79,28 @@ function loggingMiddleware(req, res, next) {
       statusCode: res.statusCode,
       duration_ms: Date.now() - start,
     }, '📤 Response sent');
-
-    console.log(`[${new Date().toISOString()}] Logging completed for ${req.method} ${req.originalUrl} in ${Date.now() - start}ms`);
   });
 
   next();
 }
 
+/**
+ * Logger wrapper that always masks sensitive data and adds traceId
+ */
+function withTrace(req) {
+  const traceId = req?.traceId;
+  return {
+    info: (obj = {}, msg) => logger.info({ traceId, ...maskObject(obj) }, msg),
+    warn: (obj = {}, msg) => logger.warn({ traceId, ...maskObject(obj) }, msg),
+    debug: (obj = {}, msg) => logger.debug({ traceId, ...maskObject(obj) }, msg),
+    error: (obj = {}, msg) => logger.error({ traceId, ...maskObject(obj) }, msg),
+  };
+}
 
 logger.maskObject = maskObject;
 logger.maskSensitive = maskSensitive;
+logger.maskHeaders = maskHeaders;
 logger.loggingMiddleware = loggingMiddleware;
+logger.withTrace = withTrace;
 
 module.exports = logger;

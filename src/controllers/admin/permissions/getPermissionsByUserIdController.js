@@ -42,7 +42,7 @@ exports.getPermissionsByUserId = async (req, res, next) => {
     // ✅ Always return, even if empty
     return sendSuccess(
       res,
-      'PERMISSIONS_FOR_USER_FETCHED',
+      'ADMIN.PERMISSIONS_FOR_USER_FETCHED',
       {
         permissions,
         meta: { durationMs: Date.now() - startTime },

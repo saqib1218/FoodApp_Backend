@@ -28,7 +28,7 @@ KITCHEN: {
   LIST_VIEW: "admin.kitchen.list.view",
   DETAIL_VIEW:"admin.kitchen.detail.view",       // ✅ view list of kitchens
   ADD_ADDRESS: "admin.kitchen.address.add",
-  ADDRESS_VIEW: "admin.kitchen.address.view",
+  ADDRESS_VIEW: "admin.kitchen.address.list.view",
   PARTNER_LIST:"admin.kitchen.partner.list.view",
    
   AVAILABILITY: "admin.kitchen.availability.add", 

@@ -51,16 +51,7 @@ exports.adminUserLogin = async (req, res, next) => {
     console.log('Password match:', isMatch);
     if (!isMatch) throw new BusinessError('AUTH.INVALID_CREDENTIALS', { traceId: req.traceId });
 
-    // 4️⃣ Fetch the user's role (log ur.role_id and r.id)
-    const roleDebug = await pool.query(
-      `SELECT ur.role_id AS user_role_id, r.id AS role_id, r.name, r.is_active, r.deleted_at
-       FROM admin_user_roles ur
-       LEFT JOIN admin_roles r ON ur.role_id = r.id
-       WHERE ur.admin_user_id = $1`,
-      [dbUser.id]
-    );
-    console.log('All role links for user:', roleDebug.rows);
-
+    // 4️⃣ Fetch active role
     const roleResult = await pool.query(
       `SELECT r.id, r.name, r.is_active, r.deleted_at
        FROM admin_roles r
@@ -71,8 +62,6 @@ exports.adminUserLogin = async (req, res, next) => {
        LIMIT 1`,
       [dbUser.id]
     );
-    console.log('Filtered active role result:', roleResult.rows);
-
     const role = roleResult.rows[0];
     if (!role) {
       throw new BusinessError('ADMIN.USER_INACTIVE', {
@@ -95,24 +84,19 @@ exports.adminUserLogin = async (req, res, next) => {
     const accessToken = generateAccessToken(userForToken);
     console.log('Decoded Access Token:', decodeToken(accessToken));
 
-    // 6️⃣ Send response
-    const userData = {
-      userId: dbUser.id,
-      name: dbUser.name,
-      email: dbUser.email,
-      mobileNumber: dbUser.phone,
-      isActive: dbUser.is_active,
-      role: role.name,
-    };
+    // 6️⃣ Send ONLY token in response
     const token = {
       accessToken,
       expiresIn: process.env.JWT_EXPIRES_IN,
     };
-    return sendSuccess(res, 'AUTH.USER_LOGIN_SUCCESS', {
-      user: userData,
-      token: token,
-      meta: { durationMs: Date.now() - startTime },
-    }, req.traceId);
+
+    return sendSuccess(
+      res,
+      'AUTH.USER_LOGIN_SUCCESS',
+      token,
+      { durationMs: Date.now() - startTime },
+      req.traceId
+    );
 
   } catch (err) {
     console.error('Login error:', err);

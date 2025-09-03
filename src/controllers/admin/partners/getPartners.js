@@ -1,6 +1,6 @@
 // src/controllers/admin/kitchenController.js
 const { pool } = require('../../../config/database');
-const { redis } = require('../../../config/redisClient');
+const { redis } = require('../../../config/redisClient'); // ✅ uncommented
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const logger = require('../../../config/logger');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
@@ -16,9 +16,10 @@ exports.getPartners = async (req, res, next) => {
 
   const idsKey = `kitchen_users:ids`;
   const detailsKey = `kitchen_users:details`;
+  const totalKey = `kitchen_users:total`; // ✅ store total count
 
   const adminUserId = req.user?.userId;
-  await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.PARTNER.DETAIL_VIEW);
+  await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.PARTNER.LIST_VIEW);
 
   log.info({ page, limit }, '[getPartners] request started');
 
@@ -29,7 +30,9 @@ exports.getPartners = async (req, res, next) => {
     // 1️⃣ Try Redis first
     if (redis) {
       try {
-        totalItems = await redis.zcard(idsKey);
+        const totalStr = await redis.get(totalKey);
+        totalItems = totalStr ? parseInt(totalStr, 10) : await redis.zcard(idsKey);
+
         if (totalItems > 0) {
           // Get IDs newest first
           const userIds = await redis.zrevrange(idsKey, offset, offset + limit - 1);
@@ -77,18 +80,19 @@ exports.getPartners = async (req, res, next) => {
       totalItems = users.length;
       log.info({ count: users.length, sample: rows.slice(0, 5) }, 'DB rows fetched');
 
-      // 3️⃣ Cache in Redis (ids + details)
+      // 3️⃣ Cache in Redis (ids + details + total count)
       if (redis && users.length > 0) {
         const pipeline = redis.multi();
         pipeline.del(idsKey);
         pipeline.del(detailsKey);
+        pipeline.set(totalKey, totalItems); // ✅ store total count
         users.forEach(u => {
           const score = new Date(u.joined_at).getTime();
           pipeline.zadd(idsKey, score, u.user_id);
           pipeline.hset(detailsKey, u.user_id, JSON.stringify(u));
         });
         await pipeline.exec();
-        log.info({ count: users.length }, '✅ Users cached in Redis (ids + details)');
+        log.info({ count: users.length }, '✅ Users cached in Redis (ids + details + total)');
       }
 
       // 4️⃣ Return paginated slice

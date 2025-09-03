@@ -16,7 +16,7 @@ exports.deletePermission = async (req, res, next) => {
 
     // ✅ Validate required field
     if (!permissionId) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: ['id'] },
         traceId: req.traceId,
         retryable: true,
@@ -39,7 +39,7 @@ exports.deletePermission = async (req, res, next) => {
 
     if (!result.rows.length) {
       await pool.query('ROLLBACK');
-      throw new BusinessError('PERMISSION_NOT_FOUND', {
+      throw new BusinessError('ADMIN.PERMISSION_NOT_FOUND', {
         details: { id: permissionId },
         traceId: req.traceId,
       });
@@ -57,7 +57,7 @@ exports.deletePermission = async (req, res, next) => {
     // ✅ Send success response
     return sendSuccess(
       res,
-      'PERMISSION_DELETED',
+      'ADMIN.PERMISSION_DELETED',
       {
         permission: result.rows[0],
         meta: { durationMs: Date.now() - startTime },

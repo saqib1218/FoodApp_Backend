@@ -36,13 +36,13 @@ exports.getPermissionById = async (req, res, next) => {
     const result = await pool.query(query, values);
 
     if (!result.rows.length) {
-      return next(new BusinessError('PERMISSION_NOT_FOUND'));
+      return next(new BusinessError('ADMIN.PERMISSION_NOT_FOUND'));
     }
 
     // 4️⃣ Send response
     return sendSuccess(
       res,
-      'PERMISSION_FETCHED',
+      'ADMIN.PERMISSION_FETCHED',
       {
         permission: result.rows[0],
         meta: { durationMs: Date.now() - startTime },

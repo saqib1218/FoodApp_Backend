@@ -23,7 +23,7 @@ exports.editRole = async (req, res, next) => {
     if (permissionIds === undefined) missingFields.push('permissionIds');
 
     if (missingFields.length > 0) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         traceId: req.traceId,
         details: { fields: missingFields }
       });
@@ -31,7 +31,7 @@ exports.editRole = async (req, res, next) => {
 
     // 2️⃣ Type validation
     if (!Array.isArray(permissionIds)) {
-      throw new BusinessError('INVALID_FIELD_TYPE', {
+      throw new BusinessError('COMMON.INVALID_TYPE', {
         traceId: req.traceId,
         details: { field: 'permissionIds', expected: 'array' }
       });
@@ -46,7 +46,7 @@ exports.editRole = async (req, res, next) => {
     // 5️⃣ Ensure role exists
     const roleCheck = await pool.query('SELECT id FROM admin_roles WHERE id = $1', [id]);
     if (roleCheck.rowCount === 0) {
-      throw new BusinessError('INVALID_ROLE', { traceId: req.traceId });
+      throw new BusinessError('ADMIN.INVALID_ROLE', { traceId: req.traceId });
     }
 
     // 6️⃣ Update role fields
@@ -99,7 +99,7 @@ exports.editRole = async (req, res, next) => {
 
     return sendSuccess(
       res,
-      'ROLE_UPDATED',
+      'ADMIN.ROLE_UPDATED',
       { role, meta: { durationMs: Date.now() - startTime } },
       req.traceId
     );

@@ -17,7 +17,7 @@ exports.editUser = async (req, res, next) => {
         await hasAdminPermissions(requestingUserId, PERMISSIONS.ADMIN.USER.EDIT);
 
     if (!id) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: ['id'] },
         traceId: req.traceId,
         retryable: true,
@@ -29,19 +29,30 @@ exports.editUser = async (req, res, next) => {
     // ✅ Check if user exists
     const userCheck = await pool.query(`SELECT id, email FROM admin_users WHERE id = $1`, [id]);
     if (userCheck.rowCount === 0) {
-      throw new BusinessError('USER_NOT_FOUND', { traceId: req.traceId });
+      throw new BusinessError('ADMIN.USER_NOT_FOUND', { traceId: req.traceId });
+    }
+
+    // ✅ Check for duplicate email/phone
+    if (email || mobileNumber) {
+      const duplicateCheck = await pool.query(
+        `SELECT id FROM admin_users WHERE id != $1 AND (email = $2 OR (phone IS NOT NULL AND phone = $3))`,
+        [id, email || '', mobileNumber || '']
+      );
+      if (duplicateCheck.rowCount > 0) {
+        throw new BusinessError('ADMIN.USER_ALREADY_EXISTS', { traceId: req.traceId });
+      }
     }
 
     // ✅ Validation
     if (email && !validateEmail(email)) {
-      throw new BusinessError('INVALID_EMAIL_FORMAT', { details: { email }, traceId: req.traceId });
+      throw new BusinessError('COMMON.INVALID_EMAIL_FORMAT', { details: { email }, traceId: req.traceId });
     }
     if (mobileNumber && !validateMobileNumber(mobileNumber)) {
-      throw new BusinessError('INVALID_MOBILE_NUMBER_FORMAT', { details: { mobileNumber }, traceId: req.traceId });
+      throw new BusinessError('COMMON.INVALID_MOBILE_NUMBER_FORMAT', { details: { mobileNumber }, traceId: req.traceId });
     }
     if (roleId) {
       const roleCheck = await pool.query('SELECT id FROM admin_roles WHERE id = $1', [roleId]);
-      if (roleCheck.rowCount === 0) throw new BusinessError('INVALID_ROLE', { traceId: req.traceId });
+      if (roleCheck.rowCount === 0) throw new BusinessError('ADMIN.ROLES.ROLE_NOT_FOUND', { traceId: req.traceId });
     }
 
     // ✅ Build dynamic updates
@@ -60,7 +71,7 @@ exports.editUser = async (req, res, next) => {
 
     if (isActive !== undefined) {
       if (typeof isActive !== 'boolean') {
-        throw new BusinessError('INVALID_STATUS_FORMAT', {
+        throw new BusinessError('COMMON.INVALID_STATUS_FORMAT', {
           details: { fields: ['isActive'], value: isActive },
           traceId: req.traceId,
         });
@@ -70,7 +81,7 @@ exports.editUser = async (req, res, next) => {
         fieldsToUpdate.push(`is_active = $${idx++}`);
         values.push(isActive);
       } catch (err) {
-        if (!(err instanceof BusinessError && err.code === 'USER_ACTION_NOT_ALLOWED')) {
+        if (!(err instanceof BusinessError && err.code === 'ADMIN.USER_ACTION_NOT_ALLOWED')) {
           throw err;
         }
       }
@@ -117,14 +128,9 @@ exports.editUser = async (req, res, next) => {
       createdAt: dbUser.created_at,
     };
 
-    return sendSuccess(
-      res,
-      'USER_UPDATED',
-      { user, meta: { durationMs: Date.now() - startTime } },
-      req.traceId
-    );
+    return sendSuccess(res, 'ADMIN.USER_UPDATED', user, req.traceId, { duration_ms: Date.now() - startTime });
 
   } catch (err) {
-    return next(err);
+    return next(err); 
   }
 };

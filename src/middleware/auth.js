@@ -116,13 +116,13 @@ const authenticateToken = (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-      throw new BusinessError('TOKEN_INVALID', { traceId: req.traceId });
+      throw new BusinessError('AUTH.TOKEN_INVALID', { traceId: req.traceId });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (!decoded.userId) {  // ✅ fixed (camelCase)
-      throw new BusinessError('TOKEN_INVALID', { traceId: req.traceId });
+      throw new BusinessError('AUTH.TOKEN_INVALID', { traceId: req.traceId });
     }
 
     // Attach full user info from token to request
@@ -137,7 +137,7 @@ const authenticateToken = (req, res, next) => {
     next();
   } catch (err) {
     if (err instanceof jwt.JsonWebTokenError || err instanceof jwt.TokenExpiredError) {
-      return next(new BusinessError('TOKEN_INVALID', { traceId: req.traceId }));
+      return next(new BusinessError('AUTH.TOKEN_INVALID', { traceId: req.traceId }));
     }
     next(err);
   }

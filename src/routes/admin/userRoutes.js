@@ -55,4 +55,5 @@ router.get('/:id/roles', authenticateToken, roleController.getRolesByUserId);
 router.get('/:id/permissions', authenticateToken, permissionController.getPermissionsByUserId);
 
 
+
 module.exports = router;

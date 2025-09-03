@@ -16,7 +16,7 @@ exports.updateUserStatus = async (req, res, next) => {
     // 1️⃣ Validate required fields (only isActive now)
     const missingFields = validateRequiredFields(req.body, ['isActive']);
     if (missingFields.length > 0) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: missingFields },
         traceId: req.traceId,
         retryable: true,
@@ -25,7 +25,7 @@ exports.updateUserStatus = async (req, res, next) => {
 
     // 2️⃣ Validate isActive is boolean
     if (typeof isActive !== 'boolean') {
-      throw new BusinessError('INVALID_TYPE', {
+      throw new BusinessError('COMMON.INVALID_TYPE', {
         details: { field: 'isActive', expectedType: 'boolean' },
         traceId: req.traceId,
       });
@@ -47,7 +47,7 @@ exports.updateUserStatus = async (req, res, next) => {
       [targetUserId]
     );
     if (userCheck.rowCount === 0) {
-      throw new BusinessError('USER_NOT_FOUND', { traceId: req.traceId });
+      throw new BusinessError('ADMIN.USER_NOT_FOUND', { traceId: req.traceId });
     }
 
     // 5️⃣ Update status
@@ -73,7 +73,7 @@ exports.updateUserStatus = async (req, res, next) => {
     // 7️⃣ Send success
     return sendSuccess(
       res,
-      'USER_STATUS_UPDATED',
+      'ADMIN.USER_STATUS_UPDATED',
       {
         user: responseUser,
         meta: { durationMs: Date.now() - startTime },

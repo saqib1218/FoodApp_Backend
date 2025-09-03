@@ -15,7 +15,7 @@ exports.adminUserLogin = async (req, res, next) => {
     // 1️⃣ Validate required fields
     const missingFields = validateRequiredFields(req.body, ['email', 'password']);
     if (missingFields.length > 0) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: missingFields },
         traceId: req.traceId,
         retryable: true,
@@ -24,7 +24,7 @@ exports.adminUserLogin = async (req, res, next) => {
 
     // 1.5️⃣ Validate email format
     if (!validateEmail(email)) {
-      throw new BusinessError('INVALID_EMAIL_FORMAT', {
+      throw new BusinessError('COMMON.INVALID_EMAIL_FORMAT', {
         details: { email },
         traceId: req.traceId,
         retryable: true,
@@ -42,14 +42,14 @@ exports.adminUserLogin = async (req, res, next) => {
     const dbUser = userResult.rows[0];
     console.log('DB user:', dbUser);
 
-    if (!dbUser) throw new BusinessError('USER_INACTIVE', { traceId: req.traceId });
-    if (dbUser.deleted_at !== null) throw new BusinessError('USER_INACTIVE', { traceId: req.traceId });
-    if (!dbUser.is_active) throw new BusinessError('USER_INACTIVE', { traceId: req.traceId });
+    if (!dbUser) throw new BusinessError('AUTH.INVALID_CREDENTIALS', { traceId: req.traceId });
+    if (dbUser.deleted_at !== null) throw new BusinessError('ADMIN.USER_NOT_FOUND', { traceId: req.traceId });
+    if (!dbUser.is_active) throw new BusinessError('ADMIN.USER_INACTIVE', { traceId: req.traceId });
 
     // 3️⃣ Compare password
     const isMatch = await bcrypt.compare(password, dbUser.password_hash);
     console.log('Password match:', isMatch);
-    if (!isMatch) throw new BusinessError('INVALID_CREDENTIALS', { traceId: req.traceId });
+    if (!isMatch) throw new BusinessError('AUTH.INVALID_CREDENTIALS', { traceId: req.traceId });
 
     // 4️⃣ Fetch the user's role (log ur.role_id and r.id)
     const roleDebug = await pool.query(
@@ -75,7 +75,7 @@ exports.adminUserLogin = async (req, res, next) => {
 
     const role = roleResult.rows[0];
     if (!role) {
-      throw new BusinessError('USER_INACTIVE', {
+      throw new BusinessError('ADMIN.USER_INACTIVE', {
         traceId: req.traceId,
         details: { reason: 'No active role assigned' },
       });
@@ -96,15 +96,23 @@ exports.adminUserLogin = async (req, res, next) => {
     console.log('Decoded Access Token:', decodeToken(accessToken));
 
     // 6️⃣ Send response
-    return sendSuccess(
-      res,
-      'USER_LOGIN_SUCCESS',
-      {
-        accessToken,
-        meta: { durationMs: Date.now() - startTime },
-      },
-      req.traceId
-    );
+    const userData = {
+      userId: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      mobileNumber: dbUser.phone,
+      isActive: dbUser.is_active,
+      role: role.name,
+    };
+    const token = {
+      accessToken,
+      expiresIn: process.env.JWT_EXPIRES_IN,
+    };
+    return sendSuccess(res, 'AUTH.USER_LOGIN_SUCCESS', {
+      user: userData,
+      token: token,
+      meta: { durationMs: Date.now() - startTime },
+    }, req.traceId);
 
   } catch (err) {
     console.error('Login error:', err);

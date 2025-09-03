@@ -15,7 +15,7 @@ exports.deleteRole = async (req, res, next) => {
 
     // 2️⃣ Validate required field: id
     if (!id) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: ['id'] },
         traceId: req.traceId,
         retryable: true,
@@ -29,14 +29,14 @@ exports.deleteRole = async (req, res, next) => {
     );
 
     if (roleCheck.rowCount === 0) {
-      throw new BusinessError('ROLE_NOT_FOUND', { traceId: req.traceId });
+      throw new BusinessError('ADMIN.ROLE_NOT_FOUND', { traceId: req.traceId });
     }
 
     const role = roleCheck.rows[0];
 
     if (role.deleted_at) {
       // Already deleted
-      throw new BusinessError('ROLE_NOT_FOUND', { traceId: req.traceId });
+      throw new BusinessError('ADMIN.ROLE_NOT_FOUND', { traceId: req.traceId });
     }
 
     // 4️⃣ Soft delete role (mark deleted_at and optionally deactivate)
@@ -57,7 +57,7 @@ exports.deleteRole = async (req, res, next) => {
     // 6️⃣ Send response
     return sendSuccess(
       res,
-      'ROLE_DELETED',
+      'ADMIN.ROLE_DELETED',
       { roleId: id, meta: { durationMs: Date.now() - startTime } },
       req.traceId
     );

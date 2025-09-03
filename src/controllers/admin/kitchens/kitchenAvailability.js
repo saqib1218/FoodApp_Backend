@@ -1,96 +1,126 @@
 const { pool } = require('../../../config/database');
-const BusinessError = require('../../../lib/businessErrors');
+
 const { sendSuccess } = require('../../../utils/responseHelpers');
+const logger = require('../../../config/logger');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const PERMISSIONS = require('../../../config/permissions');
+const BusinessError = require('../../../lib/businessErrors');
 
-/**
- * Update Kitchen Availability (Admin -> goes into staging + main reference)
- * PUT /kitchen/:kitchenId/availability
- */
 exports.updateKitchenAvailability = async (req, res, next) => {
-  const { kitchenId } = req.params;
-  const { availability, ownerUserId } = req.body;
-  const adminUserId = req.user?.userId; // ✅ admin ID from token
-  const traceId = req.trace_id;
-
-  console.log('🔹 Incoming request to update kitchen availability');
-  console.log('🔹 kitchenId:', kitchenId, 'adminUserId:', adminUserId, 'ownerUserId:', ownerUserId);
-  console.log('🔹 Request body:', JSON.stringify(req.body, null, 2));
-
+  const { kitchenId } = req.params.id;
+  const availabilities = req.body.availabilities; // [{dayOfWeek, slotId, isAvailable, customStartTime, customEndTime}]
+  const adminUserId = req.user?.userId;
+  const log = logger.withTrace(req);
+ await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.KITCHEN.AVAILABILITY);
   try {
-    // 1️⃣ Ensure admin token exists
-    if (!adminUserId) {
-      throw new BusinessError('USER_NOT_AUTHORIZED', { traceId });
+    log.info({ kitchenId, adminUserId }, '[updateKitchenAvailability] request started');
+
+    // 1️⃣ Check kitchenId
+    if (!kitchenId) {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
+        traceId: req.traceId,
+        details: {
+          fields: [{ field: 'kitchenId', meta: { reason: 'required' } }],
+          meta: {}
+        }
+      });
     }
 
-    // 2️⃣ Check admin permission first
-    const allowed = await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.KITCHEN.AVAILABILITY);
-    if (!allowed) {
-      throw new BusinessError('USER_NOT_AUTHORIZED', { traceId });
+    // 2️⃣ Check availabilities array
+    if (!Array.isArray(availabilities) || !availabilities.length) {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
+        traceId: req.traceId,
+        details: {
+          fields: [{ field: 'availabilities', meta: { reason: 'required' } }],
+          meta: {}
+        }
+      });
     }
 
-    // 3️⃣ Validate required fields
+    // 3️⃣ Check each slot for required fields
     const missingFields = [];
-    if (!Array.isArray(availability) || availability.length === 0) missingFields.push('availability');
-    if (!ownerUserId) missingFields.push('ownerUserId');
-    if (missingFields.length > 0) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', { traceId, details: missingFields });
+    availabilities.forEach((slot, index) => {
+      if (!slot.dayOfWeek) missingFields.push({ field: `availabilities[${index}].dayOfWeek`, meta: { reason: 'required' } });
+      if (!slot.slotId) missingFields.push({ field: `availabilities[${index}].slotId`, meta: { reason: 'required' } });
+    });
+
+    if (missingFields.length) {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
+        traceId: req.traceId,
+        details: { fields: missingFields, meta: {} }
+      });
     }
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // 4️⃣ Verify kitchen belongs to this owner
-      const kitchenCheck = await client.query(
-        `SELECT ku.id 
-         FROM kitchen_users ku
-         WHERE ku.user_id = $1 AND ku.kitchen_id = $2 AND ku.deleted_at IS NULL`,
-        [ownerUserId, kitchenId]
+      // Get kitchen_staging_id
+      const { rows: stagingRows } = await client.query(
+        `SELECT id AS kitchen_staging_id FROM kitchens_staging WHERE kitchen_id=$1 LIMIT 1`,
+        [kitchenId]
       );
+      if (!stagingRows.length) throw new BusinessError('KITCHEN.KITCHEN_NOT_FOUND');
+      const kitchenStagingId = stagingRows[0].kitchen_staging_id;
 
-      if (kitchenCheck.rowCount === 0) {
-        throw new BusinessError('INVALID_KITCHEN_OWNER_RELATION', { traceId });
-      }
+      const updatedSlots = [];
 
-      // 5️⃣ Insert availability (main + staging)
-      for (const slot of availability) {
-        const { day_of_week, slot_id, is_available, custom_start_time, custom_end_time } = slot;
+      for (const slot of availabilities) {
+        const { dayOfWeek, slotId, isAvailable, customStartTime, customEndTime } = slot;
+        if (!dayOfWeek || !slotId) continue;
 
-        // MAIN table
-        const mainResult = await client.query(
-          `INSERT INTO kitchen_availability 
-           (kitchen_id, day_of_week_id, slot_id, is_available, custom_start_time, custom_end_time, created_by, updated_by, created_at, updated_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW(),NOW())
+        // 1️⃣ Create a **main record placeholder per slot** (all null except kitchen_id)
+        const { rows: insertedMain } = await client.query(
+          `INSERT INTO kitchen_availability
+           (kitchen_id, is_available, status, created_at, updated_at)
+           VALUES ($1, false, 'draft', NOW(), NOW())
            RETURNING id`,
-          [kitchenId, day_of_week, slot_id, is_available || false, custom_start_time || null, custom_end_time || null, adminUserId, adminUserId]
+          [kitchenId]
+        );
+        const mainSlotId = insertedMain[0].id;
+
+        // 2️⃣ Insert/update staging record with actual values
+        const { rows: existingStaging } = await client.query(
+          `SELECT id FROM kitchen_availability_staging
+           WHERE kitchen_staging_id=$1 AND day_of_week_id=$2 AND slot_id=$3`,
+          [kitchenStagingId, dayOfWeek, slotId]
         );
 
-        const mainAvailabilityId = mainResult.rows[0].id;
+        let updatedSlot;
+        if (existingStaging.length) {
+          const { rows: updatedRows } = await client.query(
+            `UPDATE kitchen_availability_staging
+             SET kitchen_availability_id=$1, is_available=$2, custom_start_time=$3, custom_end_time=$4, status='draft', updated_at=NOW()
+             WHERE id=$5 RETURNING *`,
+            [mainSlotId, isAvailable ?? false, customStartTime || null, customEndTime || null, existingStaging[0].id]
+          );
+          updatedSlot = updatedRows[0];
+        } else {
+          const { rows: insertedRows } = await client.query(
+            `INSERT INTO kitchen_availability_staging
+             (kitchen_availability_id, kitchen_staging_id, day_of_week_id, slot_id, is_available, custom_start_time, custom_end_time, status, created_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,'draft',NOW()) RETURNING *`,
+            [mainSlotId, kitchenStagingId, dayOfWeek, slotId, isAvailable ?? false, customStartTime || null, customEndTime || null]
+          );
+          updatedSlot = insertedRows[0];
+        }
 
-        // STAGING table
-        await client.query(
-          `INSERT INTO kitchen_availability_staging 
-           (kitchen_availability_id, kitchen_id, day_of_week_id, slot_id, is_available, custom_start_time, custom_end_time, created_by, updated_by, created_at, updated_at, owner_user_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW(),$10)`,
-          [mainAvailabilityId, kitchenId, day_of_week, slot_id, is_available || false, custom_start_time || null, custom_end_time || null, adminUserId, adminUserId, ownerUserId]
-        );
+        updatedSlots.push(updatedSlot);
       }
+
+     
 
       await client.query('COMMIT');
-      console.log('✅ Kitchen availability updated successfully (main + staging)');
-      return sendSuccess(res, 'KITCHEN_AVAILABILITY_UPDATED', {}, traceId);
+      log.info({ kitchenId }, '✅ Kitchen availability updated');
 
+      return sendSuccess(res, 'KITCHEN.KITCHEN_AVAILABILITY_UPDATED', updatedSlots, req.traceId);
     } catch (err) {
       await client.query('ROLLBACK');
-      throw err;
+      return next(err);
     } finally {
       client.release();
     }
-
   } catch (err) {
-    console.error('❌ Error updating kitchen availability:', err);
     return next(err);
   }
 };

@@ -1,25 +1,33 @@
 const successCatalog = require("../config/success-catalog.json");
+const { toCamel } = require("./caseConverters");
 
-const sendSuccess = (res, key, data = {}) => {
-  const catalogEntry = successCatalog[key];
+const getNestedCatalogEntry = (key) => {
+  return key.split('.').reduce((acc, k) => acc?.[k], successCatalog);
+};
+
+// 4th parameter = meta (pagination, sorting, etc.)
+const sendSuccess = (res, key, data = {}, meta = {}) => {
+  const catalogEntry = getNestedCatalogEntry(key);
 
   if (!catalogEntry) {
     return res.status(500).json({
       success: false,
       code: "SUCCESS_KEY_NOT_FOUND",
-      trace_id: res.req.trace_id, // use from middleware
-      message: "Success catalog entry not found."
+      trace_id:res.req.traceId,
+      message: `Success catalog entry not found for key: ${key}`
     });
   }
 
-  return res.status(catalogEntry.http_status || 200).json({
-    success: true,
-    code: catalogEntry.code,
-    i18n_key: catalogEntry.i18n_key,
-    trace_id: res.req.trace_id, // use from middleware
-    message: catalogEntry.message,
-    data
-  });
+return res.status(catalogEntry.http_status || 200).json({
+  success: true,
+  code: catalogEntry.code,
+  i18n_key: catalogEntry.i18n_key,
+  message: catalogEntry.message,
+  data: toCamel(data),   // your actual data
+  meta,                  // pagination, sorting, etc.
+  trace_id: res.req.traceId // always top-level
+});
+
 };
 
 function sendError(
@@ -34,7 +42,7 @@ function sendError(
     statusCode = 500
   } = {}
 ) {
-  const response = {
+  return res.status(statusCode).json({
     success: false,
     code,
     message,
@@ -42,10 +50,8 @@ function sendError(
     details,
     retryable,
     retry_after_seconds,
-    trace_id: res.req.trace_id // use from middleware
-  };
-
-  return res.status(statusCode).json(response);
+    trace_id: res.req.traceId // always top-level
+  });
 }
 
 module.exports = { sendSuccess, sendError };

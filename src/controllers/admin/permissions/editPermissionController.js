@@ -15,7 +15,7 @@ exports.editPermission = async (req, res, next) => {
 
     // 1️⃣ Validate required field: ID
     if (!id) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: ['id'] },
         traceId: req.traceId,
         retryable: true,
@@ -29,7 +29,7 @@ exports.editPermission = async (req, res, next) => {
       [id]
     );
     if (permissionCheck.rowCount === 0) {
-      throw new BusinessError('PERMISSION_NOT_FOUND', { traceId: req.traceId });
+      throw new BusinessError('ADMIN.PERMISSION_NOT_FOUND', { traceId: req.traceId });
     }
 
     // 4️⃣ Prepare dynamic update for fields provided
@@ -51,7 +51,7 @@ exports.editPermission = async (req, res, next) => {
     }
 
     if (fieldsToUpdate.length === 0) {
-      throw new BusinessError('NO_FIELDS_PROVIDED', { traceId: req.traceId });
+      throw new BusinessError('COMMON.NO_FIELDS_PROVIDED', { traceId: req.traceId });
     }
 
 if (fieldsToUpdate.length > 0) {
@@ -76,7 +76,7 @@ const updateQuery = `
     // 6️⃣ Send response
     return sendSuccess(
       res,
-      'PERMISSION_UPDATED',
+      'ADMIN.PERMISSION_UPDATED',
       {
         permission: updatedPermission,
         meta: { durationMs: Date.now() - startTime },

@@ -11,7 +11,7 @@ exports.getPartnerById = async (req, res, next) => {
   const userId = req.params.id;
   const adminUserId = req.user?.userId;
 
-  await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.PARTNER.LIST_VIEW);
+  await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.PARTNER.DETAIL_VIEW);
 
   // Validate required param
   if (!userId) {

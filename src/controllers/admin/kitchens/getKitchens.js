@@ -10,6 +10,7 @@ exports.getKitchens = async (req, res, next) => {
   const log = logger.withTrace(req);
   const adminUserId = req.user?.userId;
   await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.KITCHEN.LIST_VIEW);
+
   try {
     // 1️⃣ Determine state
     const state = req.query.state === 'staging' ? 'staging' : 'main';
@@ -19,25 +20,23 @@ exports.getKitchens = async (req, res, next) => {
 
     log.info({ state, query: req.query }, '[getKitchens] request started');
 
- 
-   
-
-    // 3️⃣ Pagination / lazy params
+    // 2️⃣ Pagination / lazy params
     const { type, limit, offset, lastId } = getPagination(req.query);
 
-    // 4️⃣ Sorting params from request, default descending by created_at
+    // 3️⃣ Sorting params
     const sortBy = req.query.sortBy || 'created_at';
     const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
 
     let kitchens = [];
-    let source = 'db'; // default source
+    let source = 'db';
+    let totalItems = 0;
 
-    // 5️⃣ Try fetching from Redis
+    // 4️⃣ Try Redis
     if (redis) {
       try {
         let kitchenIds = [];
         if (type === 'pagination') {
-          kitchenIds = await redis.zrevrange(idsKey, offset, offset + limit - 1); // descending
+          kitchenIds = await redis.zrevrange(idsKey, offset, offset + limit - 1);
         } else if (type === 'lazy' && lastId) {
           const startIndex = await redis.zrank(idsKey, lastId);
           if (startIndex !== null) {
@@ -50,6 +49,7 @@ exports.getKitchens = async (req, res, next) => {
         if (kitchenIds.length) {
           const kitchensData = await redis.hmget(detailsKey, kitchenIds);
           kitchens = kitchensData.map((k) => JSON.parse(k));
+          totalItems = await redis.zcard(idsKey); // ✅ total count from Redis
           source = 'redis';
         }
       } catch (redisErr) {
@@ -57,20 +57,36 @@ exports.getKitchens = async (req, res, next) => {
       }
     }
 
-    // 6️⃣ Fetch from DB if Redis missed or failed
+    // 5️⃣ Fetch from DB if Redis missed
     if (!kitchens.length) {
       const client = await pool.connect();
       try {
-        let query = `SELECT * FROM ${table}`;
+        // ✅ get total count
+        const countResult = await client.query(`SELECT COUNT(*) FROM ${table}`);
+        totalItems = parseInt(countResult.rows[0].count, 10);
+
+        let query = `
+          SELECT k.*,
+                 ku.id   AS owner_id,
+                 ku.name AS owner_name,
+                 kr.name AS owner_role
+          FROM ${table} k
+          LEFT JOIN kitchen_users ku
+            ON ku.kitchen_id = k.id AND ku.is_primary_owner = TRUE
+          LEFT JOIN kitchen_user_roles kur
+            ON kur.kitchen_user_id = ku.id
+          LEFT JOIN kitchen_roles kr
+            ON kr.id = kur.role_id
+        `;
         const params = [];
         let paramIndex = 1;
 
         if (type === 'lazy' && lastId) {
-          query += ` WHERE kitchen_id > $${paramIndex++}`;
+          query += ` WHERE k.id > $${paramIndex++}`;
           params.push(lastId);
         }
 
-        query += ` ORDER BY ${sortBy} ${sortOrder} LIMIT $${paramIndex++}`;
+        query += ` ORDER BY k.${sortBy} ${sortOrder} LIMIT $${paramIndex++}`;
         params.push(limit);
 
         if (type === 'pagination') {
@@ -79,13 +95,20 @@ exports.getKitchens = async (req, res, next) => {
         }
 
         const { rows } = await client.query(query, params);
-        kitchens = rows;
 
-        // Cache in Redis
+        kitchens = rows.map((k) => {
+          const owner = k.owner_id
+            ? { id: k.owner_id, name: k.owner_name, role: k.owner_role || 'owner' }
+            : {};
+          const { owner_id, owner_name, owner_role, ...rest } = k;
+          return { ...rest, owner };
+        });
+
+        // ✅ Cache in Redis
         if (redis && kitchens.length) {
           const pipeline = redis.multi();
           kitchens.forEach((kitchen) => {
-            const kitchenId = kitchen.kitchen_id || kitchen.id;
+            const kitchenId = kitchen.id;
             const score = new Date(kitchen.created_at).getTime();
             pipeline.zadd(idsKey, score, kitchenId);
             pipeline.hset(detailsKey, kitchenId, JSON.stringify(kitchen));
@@ -97,8 +120,7 @@ exports.getKitchens = async (req, res, next) => {
       }
     }
 
-    // 7️⃣ Build meta
-    const totalItems = kitchens.length; // can replace with a count query if you want total across DB
+    // 6️⃣ Meta
     const totalPages = Math.ceil(totalItems / limit) || 1;
 
     const meta = {

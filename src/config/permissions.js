@@ -25,10 +25,22 @@ KITCHEN: {
   CREATE: "admin.kitchen.create",
   EDIT: "admin.kitchen.edit",
   DELETE: "admin.kitchen.delete",
-  LIST_VIEW: "admin.kitchen.list.view",        // ✅ view list of kitchens
-  ADD_ADDRESS: "admin.kitchen.address.add",    // ✅ add kitchen address
+  LIST_VIEW: "admin.kitchen.list.view",
+  DETAIL_VIEW:"admin.kitchen.view",       // ✅ view list of kitchens
+  ADD_ADDRESS: "admin.kitchen.address.add",
+  ADDRESS_VIEW: "admin.kitchen.address.view",
+  PARTNER_LIST:"admin.kitchen.partner.list.view",
+   
   AVAILABILITY: "admin.kitchen.availability.add", 
+    AVAILABILITY_VIEW: "admin.kitchen.availability.view", 
   INVITE_CHEF:"admin.kitchen.chef.invite" // ✅ manage kitchen availability
+},PARTNER: {
+  CREATE: "admin.partner.create",
+  EDIT: "admin.partner.edit",
+  DELETE: "admin.partner.delete",
+  LIST_VIEW: "admin.partner.list.view",
+  DETAIL_VIEW:"admin.partner.view"        // ✅ view list of kitchens
+
 }
 
   },

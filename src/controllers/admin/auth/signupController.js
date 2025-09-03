@@ -13,7 +13,7 @@ exports.createSuperAdmin = async (req, res, next) => {
     // Validate required fields using utility
     const missingFields = validateRequiredFields(req.body, ['name', 'email', 'password']);
     if (missingFields.length > 0) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: missingFields },
         traceId: req.traceId,
         retryable: true,
@@ -22,7 +22,7 @@ exports.createSuperAdmin = async (req, res, next) => {
 
     // Validate email format
     if (!validateEmail(email)) {
-      throw new BusinessError('INVALID_EMAIL_FORMAT', {
+      throw new BusinessError('COMMON.INVALID_EMAIL_FORMAT', {
         details: { email },
         traceId: req.traceId,
         retryable: true,
@@ -35,7 +35,7 @@ exports.createSuperAdmin = async (req, res, next) => {
       [email]
     );
     if (userCheck.rows.length > 0) {
-      throw new BusinessError('USER_ALREADY_EXISTS', {
+      throw new BusinessError('ADMIN.USER_ALREADY_EXISTS', {
         traceId: req.traceId,
         details: { email },
       });
@@ -78,10 +78,13 @@ exports.createSuperAdmin = async (req, res, next) => {
       [userId, roleId]
     );
 
-    return sendSuccess(res, 'USER_CREATED', {
-      user: { id: userId, name, email, role: 'superadmin' },
-      meta: { duration_ms: Date.now() - startTime },
-    }, req.traceId);
+    // 5️⃣ Send success response
+    return sendSuccess(res, 'ADMIN.USER_CREATED', {
+      userId: newUser.rows[0].id,
+      name: newUser.rows[0].name,
+      email: newUser.rows[0].email,
+      role: 'superadmin',
+    }, req.traceId, { duration_ms: Date.now() - startTime });
 
   } catch (err) {
     return next(err);

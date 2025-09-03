@@ -14,7 +14,7 @@ exports.deleteUser = async (req, res, next) => {
 
     // 1️⃣ Validate required field: id
     if (!id) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: ['id'] },
         traceId: req.traceId,
         retryable: true,
@@ -28,7 +28,7 @@ exports.deleteUser = async (req, res, next) => {
       [id]
     );
     if (userRes.rowCount === 0) {
-      throw new BusinessError('USER_NOT_FOUND', { traceId: req.traceId });
+      throw new BusinessError('ADMIN.USER_NOT_FOUND', { traceId: req.traceId });
     }
     const user = userRes.rows[0];
 
@@ -63,15 +63,7 @@ exports.deleteUser = async (req, res, next) => {
     );
 
     // 6️⃣ Send response
-    return sendSuccess(
-      res,
-      'USER_SOFT_DELETED',
-      {
-        user: deletedUser,
-        meta: { durationMs: Date.now() - startTime },
-      },
-      req.traceId
-    );
+    return sendSuccess(res, 'ADMIN.USER_DELETED', { userId: id }, req.traceId, { duration_ms: Date.now() - startTime });
 
   } catch (err) {
     return next(err);

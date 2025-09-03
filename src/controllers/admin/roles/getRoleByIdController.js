@@ -36,7 +36,7 @@ exports.getRoleById = async (req, res, next) => {
     const roleRes = await pool.query(roleQuery, values);
 
     if (!roleRes.rows.length) {
-      return next(new BusinessError('ROLE_NOT_FOUND'));
+      return next(new BusinessError('ADMIN.ROLE_NOT_FOUND'));
     }
 
     const dbRole = roleRes.rows[0];
@@ -70,7 +70,7 @@ exports.getRoleById = async (req, res, next) => {
     // 4️⃣ Send response
     return sendSuccess(
       res,
-      'ROLE_FETCHED',
+      'ADMIN.ROLE_FETCHED',
       {
         role,
         meta: { durationMs: Date.now() - startTime },

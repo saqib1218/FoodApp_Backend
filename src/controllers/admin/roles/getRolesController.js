@@ -83,7 +83,7 @@ exports.getRoles = async (req, res, next) => {
     // 5️⃣ Send response (⚡ no pagination metadata)
     return sendSuccess(
       res,
-      'ROLES_LIST_FETCHED',
+      'ADMIN.ROLES_LIST_FETCHED',
       {
         roles,
         meta: {

@@ -39,7 +39,7 @@ exports.getPermissions = async (req, res, next) => {
     // 4️⃣ Send response (⚡ no pagination metadata)
     return sendSuccess(
       res,
-      'PERMISSIONS_LIST_FETCHED',
+      'ADMIN.PERMISSIONS_LIST_FETCHED',
       {
         permissions,
         meta: {

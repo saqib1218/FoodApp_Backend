@@ -12,7 +12,7 @@ exports.getUserById = async (req, res, next) => {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(targetUserId)) {
-      return next(new BusinessError('USER_NOT_FOUND'));
+      return next(new BusinessError('ADMIN.USER_NOT_FOUND'));
     }
 
     const query = `
@@ -44,7 +44,7 @@ exports.getUserById = async (req, res, next) => {
     const { rows } = await pool.query(query, [targetUserId]);
 
     if (!rows.length) {
-      return next(new BusinessError('USER_NOT_FOUND'));
+      return next(new BusinessError('ADMIN.USER_NOT_FOUND'));
     }
 
     // ✅ Convert snake_case → camelCase
@@ -68,7 +68,7 @@ exports.getUserById = async (req, res, next) => {
     // ✅ Send response
     return sendSuccess(
       res,
-      'USER_DETAILS_FETCHED',
+      'ADMIN.USER_DETAILS_FETCHED',
       {
         user,
         meta: { durationMs: Date.now() - startTime }

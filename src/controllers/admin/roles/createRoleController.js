@@ -21,7 +21,7 @@ exports.createRole = async (req, res, next) => {
     ]);
 
     if (missingFields.length > 0) {
-      throw new BusinessError('MISSING_REQUIRED_FIELDS', {
+      throw new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         details: { fields: missingFields },
         traceId: req.traceId,
         retryable: true,
@@ -30,7 +30,7 @@ exports.createRole = async (req, res, next) => {
 
     // Extra validation: permissionIds must be a non-empty array
     if (!Array.isArray(permissionIds) || permissionIds.length === 0) {
-      throw new BusinessError('INVALID_FIELD_VALUE', {
+      throw new BusinessError('COMMON.INVALID_TYPE', {
         details: { field: 'permissionIds', message: 'Must be a non-empty array' },
         traceId: req.traceId,
       });
@@ -63,7 +63,7 @@ exports.createRole = async (req, res, next) => {
         roleDb = rows[0];
       } else {
         // ❌ Role already active
-        throw new BusinessError('ROLE_ALREADY_EXISTS', {
+        throw new BusinessError('ADMIN.ROLE_ALREADY_EXISTS', {
           details: { name },
           traceId: req.traceId,
         });
@@ -92,7 +92,7 @@ exports.createRole = async (req, res, next) => {
 
     // 4️⃣ Convert to camelCase for response
     const role = {
-      id: roleDb.id,
+      id: roleDb.id, 
       name: roleDb.name,
       description: roleDb.description,
       isActive: roleDb.is_active,
@@ -104,14 +104,14 @@ exports.createRole = async (req, res, next) => {
     // 5️⃣ Send success response
     return sendSuccess(
       res,
-      'ROLE_CREATED_SUCCESS',
+      'ADMIN.ROLE_CREATED_SUCCESS',
       { role, meta: { durationMs: Date.now() - startTime } },
       req.traceId
     );
 
   } catch (err) {
     if (err.code === '23505') {
-      return next(new BusinessError('ROLE_ALREADY_EXISTS', {
+      return next(new BusinessError('ADMIN.ROLE_ALREADY_EXISTS', {
         details: { name: req.body.name },
         traceId: req.traceId,
       }));

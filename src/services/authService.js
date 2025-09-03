@@ -9,7 +9,7 @@ exports.refreshToken = async (req, res, next) => {
 
     // 1️⃣ No refresh token provided
     if (!refreshToken) {
-      throw new BusinessError("AUTH_REQUIRED", { traceId: req.traceId });
+      throw new BusinessError("AUTH.AUTH_REQUIRED", { traceId: req.traceId });
     }
 
     let decoded;
@@ -20,7 +20,7 @@ exports.refreshToken = async (req, res, next) => {
         process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET
       );
     } catch (err) {
-      throw new BusinessError("TOKEN_INVALID", { traceId: req.traceId });
+      throw new BusinessError("AUTH.TOKEN_INVALID", { traceId: req.traceId });
     }
 
     // 3️⃣ Check DB (revocation support)
@@ -29,7 +29,7 @@ exports.refreshToken = async (req, res, next) => {
       [refreshToken]
     );
     if (check.rows.length === 0) {
-      throw new BusinessError("TOKEN_EXPIRED", { traceId: req.traceId });
+      throw new BusinessError("AUTH.TOKEN_EXPIRED", { traceId: req.traceId });
     }
 
     // 4️⃣ Issue new access token
@@ -42,7 +42,7 @@ exports.refreshToken = async (req, res, next) => {
     // 5️⃣ Success response
     return sendSuccess(
       res,
-      "ACCESS_TOKEN_REFRESHED",
+      "AUTH.ACCESS_TOKEN_REFRESHED",
       {
         access_token: accessToken,
         access_token_expires_in: 3600, // seconds

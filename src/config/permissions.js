@@ -26,7 +26,7 @@ KITCHEN: {
   EDIT: "admin.kitchen.edit",
   DELETE: "admin.kitchen.delete",
   LIST_VIEW: "admin.kitchen.list.view",
-  DETAIL_VIEW:"admin.kitchen.view",       // ✅ view list of kitchens
+  DETAIL_VIEW:"admin.kitchen.detail.view",       // ✅ view list of kitchens
   ADD_ADDRESS: "admin.kitchen.address.add",
   ADDRESS_VIEW: "admin.kitchen.address.view",
   PARTNER_LIST:"admin.kitchen.partner.list.view",
@@ -39,7 +39,7 @@ KITCHEN: {
   EDIT: "admin.partner.edit",
   DELETE: "admin.partner.delete",
   LIST_VIEW: "admin.partner.list.view",
-  DETAIL_VIEW:"admin.partner.view"        // ✅ view list of kitchens
+  DETAIL_VIEW:"admin.partner.detail.view"        // ✅ view list of kitchens
 
 }
 

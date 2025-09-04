@@ -60,13 +60,36 @@ exports.getKitchenAvailabilityById = async (req, res, next) => {
 
       log.info({ query, params: [kitchenId], table }, 'Executing SQL query');
 
-      const { rows: availability } = await client.query(query, [kitchenId]);
-      log.info({ count: availability.length, sample: availability.slice(0, 5) }, 'DB rows fetched');
+      const { rows } = await client.query(query, [kitchenId]);
+      log.info({ count: rows.length, sample: rows.slice(0, 5) }, 'DB rows fetched');
 
-      if (!availability.length) {
+      if (!rows.length) {
         log.info(`No availability found for kitchen ${kitchenId} with state ${state}`);
         return sendSuccess(res, 'KITCHEN.KITCHEN_AVAILABILITY_FETCHED', [], req.traceId);
       }
+
+      // Transform response → nested clean structure
+      const availability = rows.map(r => ({
+        id: r.id,
+        kitchen_id: r.kitchen_id,
+        day: {
+          id: r.day_of_week_id,
+          name: r.day_name,
+        },
+        slot: {
+          id: r.slot_id,
+          name: r.slot_name,
+          label: r.slot_label,
+          default_start_time: r.slot_default_start_time,
+          default_end_time: r.slot_default_end_time,
+        },
+        is_available: r.is_available,
+        custom_start_time: r.custom_start_time,
+        custom_end_time: r.custom_end_time,
+        status: r.status,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+      }));
 
       return sendSuccess(res, 'KITCHEN.KITCHEN_AVAILABILITY_FETCHED', availability, req.traceId);
     } finally {

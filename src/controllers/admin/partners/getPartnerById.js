@@ -20,9 +20,7 @@ exports.getPartnerById = async (req, res, next) => {
       new BusinessError('COMMON.MISSING_REQUIRED_FIELDS', {
         traceId: req.traceId,
         details: {
-          fields: [
-            { field: 'userId', meta: { reason: 'required' } }
-          ]
+          fields: [{ field: 'userId', meta: { reason: 'required' } }]
         }
       })
     );
@@ -35,33 +33,60 @@ exports.getPartnerById = async (req, res, next) => {
     try {
       const query = `
         SELECT 
-          id AS user_id,
-          kitchen_id,
-          name,
-          phone AS mobilenumber,
-          email,
-          bio,
-          is_kyc_verified,
-          status,
-          is_primary_owner,
-          date_of_birth,
-          gender,
-          joined_at,
-          relation_to_primary_owner
-        FROM kitchen_users
-        WHERE id = $1 AND deleted_at IS NULL
+          ku.id AS user_id,
+          ku.kitchen_id,
+          ku.name,
+          ku.phone AS mobilenumber,
+          ku.email,
+          ku.bio,
+          ku.is_kyc_verified,
+          ku.status,
+          ku.is_primary_owner,
+          ku.date_of_birth,
+          ku.gender,
+          ku.joined_at,
+          ku.relation_to_primary_owner,
+          kr.id AS role_id,
+          kr.name AS role_name,
+          kr.label_key AS role_label
+        FROM kitchen_users ku
+        LEFT JOIN kitchen_user_roles kur ON kur.kitchen_user_id = ku.id
+        LEFT JOIN kitchen_roles kr ON kr.id = kur.role_id
+        WHERE ku.id = $1 AND ku.deleted_at IS NULL
       `;
       const { rows } = await client.query(query, [userId]);
 
       if (rows.length === 0) {
         log.warn({ userId }, '⚠️ Partner not found');
-        // ✅ Use BusinessError instead of sendError
         return next(
           new BusinessError('USER.USER_NOT_FOUND', { traceId: req.traceId })
         );
       }
 
-      const user = rows[0];
+      const row = rows[0];
+      const user = {
+        user_id: row.user_id,
+        kitchen_id: row.kitchen_id,
+        name: row.name,
+        mobilenumber: row.mobilenumber,
+        email: row.email,
+        bio: row.bio,
+        is_kyc_verified: row.is_kyc_verified,
+        status: row.status,
+        is_primary_owner: row.is_primary_owner,
+        date_of_birth: row.date_of_birth,
+        gender: row.gender,
+        joined_at: row.joined_at,
+        relation_to_primary_owner: row.relation_to_primary_owner,
+        role: row.role_id
+          ? {
+            
+              name: row.role_name,
+             
+            }
+          : {}
+      };
+
       log.info({ userId, user }, '✅ Partner fetched from DB');
 
       return sendSuccess(res, 'USER.USER_FETCHED', user);
@@ -69,7 +94,6 @@ exports.getPartnerById = async (req, res, next) => {
       client.release();
       log.debug('DB client released');
     }
-
   } catch (err) {
     log.error({ err }, '❌ Error fetching partner');
     return next(err);

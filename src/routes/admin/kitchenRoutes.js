@@ -12,5 +12,7 @@ router.get('/:id',authenticateToken,kitchenController.getKitchenById);
 router.get('/:id/address',authenticateToken,kitchenController.getKitchenAddressesById);
 router.get('/:id/availability',authenticateToken,kitchenController.getKitchenAvailabilityById);
 router.get('/:id/partners',authenticateToken,kitchenController.getKitchenPartners);
+router.patch('/:id',authenticateToken,kitchenController.editKitchen);
+router.patch('/:id/address/:id',authenticateToken,kitchenController.editKitchenAddress);
 
 module.exports = router;

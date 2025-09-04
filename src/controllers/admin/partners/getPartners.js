@@ -1,27 +1,31 @@
 // src/controllers/admin/kitchenController.js
 const { pool } = require('../../../config/database');
-const { redis } = require('../../../config/redisClient'); // ✅ uncommented
+const { redis } = require('../../../config/redisClient');
 const { sendSuccess } = require('../../../utils/responseHelpers');
 const logger = require('../../../config/logger');
 const { hasAdminPermissions } = require('../../../services/hasAdminPermissions');
 const PERMISSIONS = require('../../../config/permissions');
+const { getPagination } = require('../../../utils/getPagination'); // ✅ import utility
 
 exports.getPartners = async (req, res, next) => {
   const log = logger.withTrace(req);
 
-  // Pagination query params
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
-  const offset = (page - 1) * limit;
+  // ✅ Use utility for pagination
+  const { page, limit, offset } = getPagination({
+    page: req.query.page,
+    limit: req.query.limit,
+    offset: req.query.offset,
+    defaultLimit: 20
+  });
 
   const idsKey = `kitchen_users:ids`;
   const detailsKey = `kitchen_users:details`;
-  const totalKey = `kitchen_users:total`; // ✅ store total count
+  const totalKey = `kitchen_users:total`;
 
   const adminUserId = req.user?.userId;
   await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.PARTNER.LIST_VIEW);
 
-  log.info({ page, limit }, '[getPartners] request started');
+  log.info({ page, limit, offset }, '[getPartners] request started');
 
   try {
     let users = [];
@@ -34,7 +38,6 @@ exports.getPartners = async (req, res, next) => {
         totalItems = totalStr ? parseInt(totalStr, 10) : await redis.zcard(idsKey);
 
         if (totalItems > 0) {
-          // Get IDs newest first
           const userIds = await redis.zrevrange(idsKey, offset, offset + limit - 1);
           if (userIds.length) {
             const userDetails = await redis.hmget(detailsKey, userIds);
@@ -58,41 +61,46 @@ exports.getPartners = async (req, res, next) => {
     try {
       const query = `
         SELECT 
-          id AS user_id,
-          kitchen_id,
-          name,
-          phone AS mobilenumber,
-          email,
-          bio,
-          is_kyc_verified,
-          status,
-          is_primary_owner,
-          date_of_birth,
-          gender,
-          joined_at,
-          relation_to_primary_owner
-        FROM kitchen_users
-        WHERE deleted_at IS NULL
-        ORDER BY joined_at DESC
+          ku.id AS user_id,
+          ku.kitchen_id,
+          ku.name,
+          ku.phone AS mobilenumber,
+          ku.email,
+          ku.bio,
+          ku.is_kyc_verified,
+          ku.status,
+          ku.is_primary_owner,
+          ku.date_of_birth,
+          ku.gender,
+          ku.joined_at,
+          ku.relation_to_primary_owner,
+          json_build_object(
+            'name', kr.name
+          ) AS role
+        FROM kitchen_users ku
+        LEFT JOIN kitchen_user_roles kur ON kur.kitchen_user_id = ku.id
+        LEFT JOIN kitchen_roles kr ON kr.id = kur.role_id
+        WHERE ku.deleted_at IS NULL
+        ORDER BY ku.joined_at DESC
       `;
       const { rows } = await client.query(query);
       users = rows;
       totalItems = users.length;
-      log.info({ count: users.length, sample: rows.slice(0, 5) }, 'DB rows fetched');
+      log.info({ count: users.length, sample: rows.slice(0, 5) }, 'DB rows fetched with role');
 
-      // 3️⃣ Cache in Redis (ids + details + total count)
+      // 3️⃣ Cache in Redis
       if (redis && users.length > 0) {
         const pipeline = redis.multi();
         pipeline.del(idsKey);
         pipeline.del(detailsKey);
-        pipeline.set(totalKey, totalItems); // ✅ store total count
+        pipeline.set(totalKey, totalItems);
         users.forEach(u => {
           const score = new Date(u.joined_at).getTime();
           pipeline.zadd(idsKey, score, u.user_id);
           pipeline.hset(detailsKey, u.user_id, JSON.stringify(u));
         });
         await pipeline.exec();
-        log.info({ count: users.length }, '✅ Users cached in Redis (ids + details + total)');
+        log.info({ count: users.length }, '✅ Users cached in Redis (with role)');
       }
 
       // 4️⃣ Return paginated slice

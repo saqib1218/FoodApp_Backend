@@ -10,7 +10,7 @@
 function getPagination(params = {}) {
   const limit = params.limit
     ? parseInt(params.limit.toString().trim(), 10)
-    : params.defaultLimit || 20;
+    : params.defaultLimit || 2;
 
   if (params.lastId) {
     const lastId = params.lastId.toString().trim();

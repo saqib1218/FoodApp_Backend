@@ -13,6 +13,8 @@ const getKitchenById = require('./getKitchenById');
 const getKitchenAddressesById = require('./getKitchenAddressesById');
 const getKitchenAvailabilityById = require('./getKitchenAvailabilityById');
 const getKitchenPartners=require('./getKitchenPartners');
+const editKitchen=require('./editKitchen');
+const editKitchenAddress=require('./editKitchenAddress');
 
 module.exports = {
   ...createKitchen,
@@ -24,5 +26,7 @@ module.exports = {
   ...getKitchenById,
   ...getKitchenAddressesById,
   ...getKitchenAvailabilityById,
-  ...getKitchenPartners
+  ...getKitchenPartners,
+  ...editKitchen,
+  ...editKitchenAddress
 };

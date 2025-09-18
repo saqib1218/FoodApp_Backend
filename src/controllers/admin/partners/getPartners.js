@@ -63,6 +63,7 @@ exports.getPartners = async (req, res, next) => {
         SELECT 
           ku.id AS user_id,
           ku.kitchen_id,
+          k.name AS kitchen_name,
           ku.name,
           ku.phone AS mobilenumber,
           ku.email,
@@ -80,6 +81,7 @@ exports.getPartners = async (req, res, next) => {
         FROM kitchen_users ku
         LEFT JOIN kitchen_user_roles kur ON kur.kitchen_user_id = ku.id
         LEFT JOIN kitchen_roles kr ON kr.id = kur.role_id
+         LEFT JOIN kitchens k ON k.id = ku.kitchen_id  -- ✅ join with kitchens
         WHERE ku.deleted_at IS NULL
         ORDER BY ku.joined_at DESC
       `;

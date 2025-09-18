@@ -251,7 +251,6 @@
     "message": "Some fields are invalid.",
     "retryable": false
   },
-
   "INVALID_MOBILE_NUMBER_FORMAT": {
     "i18n_key": "common.invalid_mobile_format",
     "http_status": 422,

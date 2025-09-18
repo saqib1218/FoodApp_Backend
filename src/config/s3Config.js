@@ -1,13 +1,11 @@
-const AWS = require('aws-sdk');
+const { S3Client } = require('@aws-sdk/client-s3');
 
-const isProduction = process.env.NODE_ENV === 'production';
-
-const s3 = new AWS.S3({
-  endpoint: isProduction ? undefined : 'http://127.0.0.1:9000', // MinIO for dev
-  accessKeyId: process.env.S3_ACCESS_KEY || 'admin',           // MinIO / AWS key
-  secretAccessKey: process.env.S3_SECRET_KEY || 'admin123',    // MinIO / AWS secret
-  s3ForcePathStyle: !isProduction, // Required for MinIO
-  signatureVersion: 'v4'
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY,
+    secretAccessKey: process.env.S3_SECRET_KEY
+  }
 });
 
 module.exports = s3;

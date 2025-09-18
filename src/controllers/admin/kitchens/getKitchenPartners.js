@@ -5,10 +5,10 @@ const { hasAdminPermissions } = require('../../../services/hasAdminPermissions')
 const PERMISSIONS = require('../../../config/permissions');
 exports.getKitchenPartners = async (req, res, next) => {
   const log = logger.withTrace(req);
-  const kitchenId = req.params.id;
+  const kitchenId = req.params.kitchenId;
   const adminUserId = req.user?.userId;
 
-       await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.KITCHEN.PARTNER_LIST);
+  await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.KITCHEN.PARTNER_LIST);
 
 if (!kitchenId) {
   log.warn('No kitchenId provided');
@@ -75,7 +75,7 @@ if (!kitchenId) {
     const partners = Object.values(partnersMap);
     log.info({ partnersCount: partners.length, partnersSample: partners.slice(0, 5) }, 'Partners grouped');
 
-    return sendSuccess(res, 'KITCHEN.KITCHEN_PARTNERS_FETCHED', partners, req.traceId);
+    return sendSuccess(res, 'KITCHEN.PARTNERS_FETCHED', partners, req.traceId);
   } catch (err) {
     log.error({ err }, '❌ Error fetching kitchen partners');
     return next(err);

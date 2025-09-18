@@ -7,10 +7,13 @@ const { hasAdminPermissions } = require('../../../services/hasAdminPermissions')
 const PERMISSIONS = require('../../../config/permissions');
 exports.getKitchenById = async (req, res, next) => {
   const log = logger.withTrace(req);
-  const kitchenId = req.params.id;
+  const kitchenId = req.params.kitchenId;
   const adminUserId = req.user?.userId;
   // Use state instead of status, map active → main
-  const state = req.query.state === 'staging' ? 'staging' : 'main';
+
+  const state=req.query.state === 'staging' || req.query.status === 'DRAFT'
+      ? 'staging'
+      : 'main';
      await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.KITCHEN.DETAIL_VIEW);
      if (!kitchenId) {
   log.warn('No kitchenId provided');
@@ -41,13 +44,13 @@ exports.getKitchenById = async (req, res, next) => {
       const { rows } = await client.query(query, [kitchenId]);
 
       if (rows.length === 0) {
-        throw new BusinessError('KITCHEN.KITCHEN_NOT_FOUND', `Kitchen with id ${kitchenId} not found`);
+        throw new BusinessError('KITCHEN.NOT_FOUND', `Kitchen with id ${kitchenId} not found`);
       }
 
       const kitchen = rows[0];
       log.info({ kitchenId }, '✅ Kitchen fetched from DB');
 
-      return sendSuccess(res, 'KITCHEN.KITCHEN_FETCHED', kitchen, req.traceId);
+      return sendSuccess(res, 'KITCHEN.FETCHED', kitchen, req.traceId);
     } finally {
       client.release();
       log.debug({}, 'DB client released');

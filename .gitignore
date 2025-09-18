@@ -92,6 +92,7 @@ public
 # Temporary folders
 tmp/
 temp/
+test/
 
 # Editor directories and files
 .vscode/

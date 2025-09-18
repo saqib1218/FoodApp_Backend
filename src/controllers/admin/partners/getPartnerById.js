@@ -59,7 +59,7 @@ exports.getPartnerById = async (req, res, next) => {
       if (rows.length === 0) {
         log.warn({ userId }, '⚠️ Partner not found');
         return next(
-          new BusinessError('USER.USER_NOT_FOUND', { traceId: req.traceId })
+          new BusinessError('USER.NOT_FOUND', { traceId: req.traceId })
         );
       }
 
@@ -89,7 +89,7 @@ exports.getPartnerById = async (req, res, next) => {
 
       log.info({ userId, user }, '✅ Partner fetched from DB');
 
-      return sendSuccess(res, 'USER.USER_FETCHED', user);
+      return sendSuccess(res, 'USER.FETCHED', user);
     } finally {
       client.release();
       log.debug('DB client released');

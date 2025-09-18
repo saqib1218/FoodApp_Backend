@@ -4,6 +4,10 @@
   "description": "A professional, production-ready Node.js Express backend with PostgreSQL database integration, featuring authentication, authorization, and comprehensive error handling.",
   "main": ".eslintrc.js",
   "dependencies": {
+    "@aws-sdk/client-cloudfront": "^3.888.0",
+    "@aws-sdk/client-s3": "^3.884.0",
+    "@aws-sdk/client-sqs": "^3.886.0",
+    "@aws-sdk/s3-request-presigner": "^3.886.0",
     "accepts": "^1.3.8",
     "amqplib": "^0.10.8",
     "anymatch": "^3.1.3",
@@ -45,6 +49,7 @@
     "express-validator": "^7.2.1",
     "fill-range": "^7.1.1",
     "finalhandler": "^1.3.1",
+    "fluent-ffmpeg": "^2.1.3",
     "forwarded": "^0.2.0",
     "fresh": "^0.5.2",
     "function-bind": "^1.1.2",
@@ -75,6 +80,8 @@
     "morgan": "^1.10.0",
     "ms": "^2.0.0",
     "multer": "^2.0.2",
+    "multer-s3": "^3.0.1",
+    "node-fetch": "^2.7.0",
     "nodemon": "^3.1.10",
     "normalize-path": "^3.0.0",
     "object-assign": "^4.1.1",
@@ -108,6 +115,7 @@
     "send": "^0.19.0",
     "serve-static": "^1.16.2",
     "setprototypeof": "^1.2.0",
+    "sharp": "^0.34.3",
     "side-channel": "^1.1.0",
     "side-channel-list": "^1.0.0",
     "side-channel-map": "^1.0.1",
@@ -126,15 +134,14 @@
     "vary": "^1.1.2",
     "xtend": "^4.0.2"
   },
-"scripts": {
-  "start": "node src/server.js",
-  "dev": "nodemon src/server.js",
-  "test": "jest",
-
-  "migrate:create": "node-pg-migrate create -m src/migrations",
-  "migrate:up": "node-pg-migrate up -m src/migrations",
-  "migrate:down": "node-pg-migrate down -m src/migrations"
-},
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest",
+    "migrate:create": "node-pg-migrate create -m src/migrations",
+    "migrate:up": "node-pg-migrate up -m src/migrations",
+    "migrate:down": "node-pg-migrate down -m src/migrations"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

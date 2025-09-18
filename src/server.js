@@ -22,6 +22,8 @@ const roleRoutes = require('./routes/admin/roleRoutes');
 const permissionRoutes = require('./routes/admin/permissionRoutes');
 const adminKitchenRoutes=require('./routes/admin/kitchenRoutes');
 const adminPartnerRoutes=require('./routes/admin/partnerRoutes');
+const adminrequestRoutes=require('./routes/admin/requestRoutes');
+const {startWorker}=require('./worker/mediaWorker')
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -63,6 +65,7 @@ app.use('/api/admin/roles',roleRoutes );
 app.use('/api/admin/permissions',permissionRoutes );
 app.use('/api/admin/kitchens',adminKitchenRoutes );
 app.use('/api/admin/partners',adminPartnerRoutes );
+app.use('/api/admin/requests',adminrequestRoutes );
 // Add other routes here
 
 // -------------------- Health Check & Root --------------------

@@ -64,41 +64,64 @@ exports.getKitchens = async (req, res, next) => {
       const client = await pool.connect();
       try {
         // ✅ get total count
-        const countResult = await client.query(`SELECT COUNT(*) FROM ${table}`);
-        totalItems = parseInt(countResult.rows[0].count, 10);
+ // ✅ get total count
+// ✅ get total count (unchanged logic)
+const countResult = await client.query(`
+  SELECT COUNT(DISTINCT k.id)
+  FROM ${table} k
+  LEFT JOIN kitchen_users ku
+    ON ku.kitchen_id = k.id AND ku.is_primary_owner = TRUE
+  LEFT JOIN kitchen_user_roles kur
+    ON kur.kitchen_user_id = ku.id
+  LEFT JOIN kitchen_roles kr
+    ON kr.id = kur.role_id
+`);
+totalItems = parseInt(countResult.rows[0].count, 10);
 
-        let query = `
-          SELECT k.*,
-                 ku.id   AS owner_id,
-                 ku.name AS owner_name,
-                 kr.name AS owner_role
-          FROM ${table} k
-          LEFT JOIN kitchen_users ku
-            ON ku.kitchen_id = k.id AND ku.is_primary_owner = TRUE
-          LEFT JOIN kitchen_user_roles kur
-            ON kur.kitchen_user_id = ku.id
-          LEFT JOIN kitchen_roles kr
-            ON kr.id = kur.role_id
-        `;
-        const params = [];
-        let paramIndex = 1;
+// ✅ fetch one row per kitchen, with ONE owner (LATERAL picks the first primary owner)
+let query = `
+  SELECT k.*,
+         o.owner_id,
+         o.owner_name,
+         o.owner_role
+  FROM ${table} k
+  LEFT JOIN LATERAL (
+    SELECT ku.id   AS owner_id,
+           ku.name AS owner_name,
+           kr.name AS owner_role
+    FROM kitchen_users ku
+    LEFT JOIN kitchen_user_roles kur
+      ON kur.kitchen_user_id = ku.id
+    LEFT JOIN kitchen_roles kr
+      ON kr.id = kur.role_id
+    WHERE ku.kitchen_id = k.id
+      AND ku.is_primary_owner = TRUE
+    ORDER BY kur.created_at ASC NULLS LAST, ku.joined_at ASC NULLS LAST
+    LIMIT 1
+  ) o ON true
+`;
 
-        if (type === 'lazy' && lastId) {
-          query += ` WHERE k.id > $${paramIndex++}`;
-          params.push(lastId);
-        }
+const params = [];
+let paramIndex = 1;
 
-        query += ` ORDER BY k.${sortBy} ${sortOrder} LIMIT $${paramIndex++}`;
-        params.push(limit);
+if (type === 'lazy' && lastId) {
+  // kept same behaviour as your code (note: using UUID comparison here
+  // may be semantically odd — see suggestion below)
+  query += ` WHERE k.id > $${paramIndex++}`;
+  params.push(lastId);
+}
 
-        if (type === 'pagination') {
-          query += ` OFFSET $${paramIndex++}`;
-          params.push(offset);
-        }
+query += ` ORDER BY k.${sortBy} ${sortOrder} LIMIT $${paramIndex++}`;
+params.push(limit);
 
-        const { rows } = await client.query(query, params);
+if (type === 'pagination') {
+  query += ` OFFSET $${paramIndex++}`;
+  params.push(offset);
+}
 
-    // after you build `kitchens` from rows
+const { rows } = await client.query(query, params);
+
+// map rows into expected shape (owner object, rest of kitchen fields)
 kitchens = rows.map((k) => {
   const owner = k.owner_id
     ? { id: k.owner_id, name: k.owner_name, role: k.owner_role || 'owner' }
@@ -107,15 +130,6 @@ kitchens = rows.map((k) => {
   return { ...rest, owner };
 });
 
-// 🔒 ensure only the first owner per kitchen
-const seen = new Set();
-kitchens = kitchens.filter((kitchen) => {
-  if (seen.has(kitchen.id)) {
-    return false; // skip duplicate owners for this kitchen
-  }
-  seen.add(kitchen.id);
-  return true;
-});
 
 
         // ✅ Cache in Redis

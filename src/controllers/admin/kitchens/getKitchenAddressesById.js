@@ -6,7 +6,7 @@ const { hasAdminPermissions } = require('../../../services/hasAdminPermissions')
 const PERMISSIONS = require('../../../config/permissions');
 exports.getKitchenAddressesById = async (req, res, next) => {
   const log = logger.withTrace(req);
-  const kitchenId = req.params.id;
+  const kitchenId = req.params.kitchenId;
   const adminUserId = req.user?.userId;
 
     await hasAdminPermissions(adminUserId, PERMISSIONS.ADMIN.KITCHEN.ADDRESS_VIEW);
@@ -26,7 +26,10 @@ if (!kitchenId) {
 }
 
 
-  const state = req.query.state === 'staging' ? 'staging' : 'main';
+  const state =
+    req.query.state === 'staging' || req.query.status === 'DRAFT'
+      ? 'staging'
+      : 'main';
 
   try {
     log.info({ kitchenId, state }, '[getKitchenAddressesById] request started');
@@ -61,7 +64,7 @@ if (!kitchenId) {
 
       log.info({ rowCount: rows.length, sample: rows.slice(0, 5) }, 'DB rows fetched');
 
-      return sendSuccess(res, 'KITCHEN.KITCHEN_ADDRESSES_FETCHED', rows, req.traceId);
+      return sendSuccess(res, 'KITCHEN.ADDRESSES_FETCHED', rows, req.traceId);
     } finally {
       client.release();
       log.debug('DB client released');

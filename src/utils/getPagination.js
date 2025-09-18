@@ -10,11 +10,11 @@
 function getPagination(params = {}) {
   const limit = params.limit
     ? parseInt(params.limit.toString().trim(), 10)
-    : params.defaultLimit || 2;
+    : params.defaultLimit || 20;
 
   if (params.lastId) {
     const lastId = params.lastId.toString().trim();
-    return { type: 'lazy', limit, lastId };
+    return { type: 'lazy', limit, lastId };A
   }
 
   // Classic pagination

@@ -13,7 +13,9 @@ exports.getKitchens = async (req, res, next) => {
 
   try {
     // 1️⃣ Determine state
-    const state = req.query.state === 'staging' ? 'staging' : 'main';
+  const state= req.query.state === 'staging' || req.query.status === 'DRAFT'
+      ? 'staging'
+      : 'main';
     const idsKey = state === 'staging' ? 'kitchens_staging:ids' : 'kitchens_main:ids';
     const detailsKey = state === 'staging' ? 'kitchens_staging:details' : 'kitchens_main:details';
     const table = state === 'staging' ? 'kitchens_staging' : 'kitchens';
@@ -96,13 +98,25 @@ exports.getKitchens = async (req, res, next) => {
 
         const { rows } = await client.query(query, params);
 
-        kitchens = rows.map((k) => {
-          const owner = k.owner_id
-            ? { id: k.owner_id, name: k.owner_name, role: k.owner_role || 'owner' }
-            : {};
-          const { owner_id, owner_name, owner_role, ...rest } = k;
-          return { ...rest, owner };
-        });
+    // after you build `kitchens` from rows
+kitchens = rows.map((k) => {
+  const owner = k.owner_id
+    ? { id: k.owner_id, name: k.owner_name, role: k.owner_role || 'owner' }
+    : {};
+  const { owner_id, owner_name, owner_role, ...rest } = k;
+  return { ...rest, owner };
+});
+
+// 🔒 ensure only the first owner per kitchen
+const seen = new Set();
+kitchens = kitchens.filter((kitchen) => {
+  if (seen.has(kitchen.id)) {
+    return false; // skip duplicate owners for this kitchen
+  }
+  seen.add(kitchen.id);
+  return true;
+});
+
 
         // ✅ Cache in Redis
         if (redis && kitchens.length) {

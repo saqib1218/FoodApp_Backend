@@ -3,10 +3,10 @@
 // Kitchen CRUD / related controllers
 const createKitchen = require('./createKitchen');
 const addKitchenAddress = require('./addKitchenAddress');
-const updateKitchenAvailability = require('./kitchenAvailability');
-const processMedia = require('./processMedia');
+const updateKitchenAvailability = require('./addiKtchenAvailability');
+const processMedia = require('./addKitchenMedia');
 const createChefInvitation = require('./chefInvite');
-
+const getKitchenChangeRequests=require('./getKitchenRequestsById')
 // Additional fetch controllers
 const getKitchens = require('./getKitchens');
 const getKitchenById = require('./getKitchenById');
@@ -15,7 +15,9 @@ const getKitchenAvailabilityById = require('./getKitchenAvailabilityById');
 const getKitchenPartners=require('./getKitchenPartners');
 const editKitchen=require('./editKitchen');
 const editKitchenAddress=require('./editKitchenAddress');
-
+const submitKitchenForApproval=require('./submitKitchenForApproval');
+const getKitchenMediaByKitchenId=require('./getKitchenMediaById');
+const deleteKitchenMedia=require('./deleteKitchenMediaById');
 module.exports = {
   ...createKitchen,
   ...addKitchenAddress,
@@ -28,5 +30,9 @@ module.exports = {
   ...getKitchenAvailabilityById,
   ...getKitchenPartners,
   ...editKitchen,
-  ...editKitchenAddress
+  ...editKitchenAddress,
+  ...getKitchenChangeRequests,
+  ...submitKitchenForApproval,
+  ...getKitchenMediaByKitchenId,
+  ...deleteKitchenMedia
 };

@@ -1,4 +1,20 @@
 const { body, validationResult } = require('express-validator');
+const { validate: isUuid } = require('uuid');
+
+/**
+ * Validate that a value is a valid UUID
+ * @param {string} value - The ID to validate
+ * @param {string} fieldName - The field name for error reporting
+ */
+
+function validateUUID(value, fieldName) {
+  if (!value || typeof value !== 'string' || !isUuid(value)) {
+    return { valid: false, fieldName }; // ❌ Must return object
+  }
+  return { valid: true, fieldName };
+}
+
+
 
 
 /**
@@ -46,11 +62,42 @@ function validateEmail(email) {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // simple email validation
   return regex.test(s);
 }
+// validators/validationHelpers.js
+
+const FIELD_LIMITS = {
+  Name: 10,
+  Tagline: 50,
+  Bio: 500
+};
+
+function validateString(value, fieldName) {
+  const FIELD_LIMITS = { Name: 50, Tagline: 100, Bio: 500 };
+  const maxChars = FIELD_LIMITS[fieldName] || null;
+
+  if (!value || value.trim() === '') {
+    const error = new Error(`${fieldName} is required`);
+    error.fieldName = fieldName;
+    throw error;
+  }
+
+  if (maxChars && value.trim().length > maxChars) {
+    const error = new Error(`${fieldName} must be at most ${maxChars} characters`);
+    error.fieldName = fieldName;
+    throw error;
+  }
+}
+
+
+
+
+
 
 module.exports = {
   validateRequiredFields,
   validateMobileNumber,
-  validateEmail
+  validateEmail,
+  validateString,
+  validateUUID
 };
 
 

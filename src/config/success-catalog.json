@@ -1,36 +1,36 @@
 {
-  "KITCHEN": {
-    "KITCHEN_CREATED": {
+   "KITCHEN": {
+    "CREATED": {
       "i18n_key": "kitchen.created",
       "http_status": 201,
       "code": "OK",
       "message": "Kitchen created successfully."
     },
-    "KITCHEN_ADDRESS_CREATED": {
+    "ADDRESS_CREATED": {
       "i18n_key": "kitchen.address.created",
       "http_status": 201,
       "code": "OK",
       "message": "Kitchen address added successfully."
     },
-    "KITCHEN_AVAILABILITY_UPDATED": {
+    "AVAILABILITY_UPDATED": {
       "i18n_key": "kitchen.availability.updated",
       "http_status": 200,
       "code": "OK",
       "message": "Kitchen availability updated successfully."
     },
-    "KITCHEN_STAGED": {
+    "STAGED": {
       "i18n_key": "admin.kitchen_staged_success",
       "http_status": 200,
       "code": "OK",
       "message": "Kitchen staged successfully."
     },
-    "KITCHEN_ADDRESS_STAGED": {
+    "ADDRESS_STAGED": {
       "i18n_key": "admin.kitchen_address_staged_success",
       "http_status": 200,
       "code": "OK",
       "message": "Kitchen address staged successfully."
     },
-    "KITCHEN_FETCHED": {
+    "FETCHED": {
       "i18n_key": "kitchen.fetched",
       "http_status": 200,
       "code": "OK",
@@ -42,31 +42,42 @@
       "code": "OK",
       "message": "Kitchens fetched successfully."
     },
-       "KITCHEN_PARTNERS_FETCHED": {
+    "PARTNERS_FETCHED": {
       "i18n_key": "kitchens.partners_fetched",
       "http_status": 200,
       "code": "OK",
       "message": "Kitchens partners fetched successfully."
     },
-     "KITCHEN_PARTNER_FETCHED": {
+    "PARTNER_FETCHED": {
       "i18n_key": "kitchens.partner_fetched",
       "http_status": 200,
       "code": "OK",
       "message": "Kitchens partner fetched successfully."
     },
-    "KITCHEN_ADDRESSES_FETCHED": {
+    "ADDRESSES_FETCHED": {
       "i18n_key": "kitchens.address_fetched",
       "http_status": 200,
       "code": "OK",
       "message": "Kitchens address fetched successfully."
     },
-     "KITCHEN_AVAILABILITY_FETCHED": {
+    "ADDRESS_UPDATED": {
+      "i18n_key": "kitchens.address_updated",
+      "http_status": 200,
+      "code": "OK",
+      "message": "Kitchens address updated successfully."
+    },
+    "AVAILABILITY_FETCHED": {
       "i18n_key": "kitchens.availability_fetched",
       "http_status": 200,
       "code": "OK",
       "message": "Kitchens availability fetched successfully."
     },
-   
+    "UPDATED": {
+      "i18n_key": "kitchens.updated",
+      "http_status": 200,
+      "code": "OK",
+      "message": "Kitchen data updated successfully."
+    },
     "CHEF_INVITATION_CREATED": {
       "i18n_key": "chef.invitation.created",
       "http_status": 201,
@@ -78,11 +89,90 @@
       "http_status": 200,
       "code": "OK",
       "message": "Invitation code validated successfully."
+    },
+    "REQUESTS_FETCHED": {
+      "i18n_key": "kitchen.change_requests.fetched",
+      "http_status": 200,
+      "code": "OK",
+      "message": "Kitchen change requests fetched successfully."
+    },
+    "SUBMITTED_FOR_APPROVAL": {
+      "i18n_key": "kitchen.submitted_for_approval",
+      "http_status": 200,
+      "code": "OK",
+      "message": "Kitchen has been submitted for approval successfully."
+    },
+    "ADDRESSES_SYNCED": {
+      "i18n_key": "kitchen.addresses_synced",
+      "http_status": 200,
+      "message": "Kitchen addresses synced successfully.",
+      "retryable": false
+    },
+    "SYNCED": {
+      "i18n_key": "kitchen.data_synced",
+      "http_status": 200,
+      "message": "Kitchen data synced successfully.",
+      "retryable": false
+    },
+    "APPROVED": {
+      "i18n_key": "kitchen.approved",
+      "http_status": 200,
+      "message": "The kitchen has been successfully approved and is now active.",
+      "retryable": false
+    },
+    "MEDIA_UPLOAD_URLS_CREATED": {
+      "i18n_key": "kitchen.media_processing_started",
+      "http_status": 200,
+      "message": "The kitchen media processing started",
+      "retryable": false
+    },
+    "MEDIA_FETCHED": {
+      "i18n_key": "kitchen.media_fetched",
+      "http_status": 200,
+      "message": "The kitchen media has been fetched",
+      "retryable": false
+    },
+    "MEDIA_DELETED":{
+       "i18n_key": "kitchen.media_deleted",
+      "http_status": 200,
+      "message": "The kitchen media has been deleted",
+      "retryable": false
+
     }
+  },
+"REQUEST": {
+    "CREATED": {
+    "i18n_key": "request.created",
+    "http_status": 200,
+    "message": "request created successfully",
+    "retryable": false
+  },
+
+  "APPROVED": {
+    "i18n_key": "requests.approved",
+    "http_status": 200,
+    "message": "Change request approved successfully.",
+    "retryable": false
+  },
+  "DETAILS_FETCHED": {
+    "i18n_key": "requests.details_fetched",
+    "http_status": 200,
+    "message": "Change request details fetched successfully.",
+    "retryable": false
+  },
+  "LIST_FETCHED": {
+    "i18n_key": "requests.list_fetched",
+    "http_status": 200,
+    "message": "Change request list fetched successfully.",
+    "retryable": false
+  },"DETAIL_FETCHED":{
+     "i18n_key": "requests.detail_fetched",
+    "http_status": 200,
+    "message": "request detail fetched successfully.",
+    "retryable": false
+
   }
-,
-
-
+},
   "PARTNER": {
     "PARTNERS_FETCHED": {
       "i18n_key": "partners.fetched",
@@ -151,7 +241,7 @@
     "code": "OK",
     "message": "User created successfully."
   },
-  "USER_FETCHED": {
+  "FETCHED": {
     "i18n_key": "user.user_fetched",
     "http_status": 200,
     "code": "OK",
@@ -301,7 +391,22 @@
     "http_status": 200,
     "code": "OK",
     "message": "Roles for user fetched successfully."
+  },
+    "CHANGE_REQUEST_CREATED": {
+    "i18n_key": "admin.change_request_created",
+    "http_status": 200,
+    "code": "OK",
+    "message": "request for update created in request log table"
+  },"REQUEST_LOG_DETAIL_FETCHED":{
+    "i18n_key": "admin.change_request_log_detail_created",
+    "http_status": 200,
+    "code": "OK",
+    "message": "details of request log fetched"
+
   }
-}
 
 }
+
+
+}
+

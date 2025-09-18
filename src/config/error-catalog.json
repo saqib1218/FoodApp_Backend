@@ -1,6 +1,6 @@
 {
   "USER": {
-    "USER_NOT_FOUND": { "i18n_key": "user.not_found", "http_status": 404, "message": "User not found.", "retryable": false },
+    "NOT_FOUND": { "i18n_key": "user.not_found", "http_status": 404, "message": "User not found.", "retryable": false },
     "USER_ALREADY_EXISTS": { "i18n_key": "user.already_exists", "http_status": 409, "message": "User already exists.", "retryable": false },
     "USER_BLOCKED": { "i18n_key": "user.blocked", "http_status": 403, "message": "Your account has been blocked.", "retryable": false },
     "USER_LOCKED": { "i18n_key": "auth.user_locked", "http_status": 403, "message": "User account is locked.", "retryable": false },
@@ -32,16 +32,101 @@
 
 
 
+
 "KITCHEN": {
-  "KITCHEN_ALREADY_EXISTS": { "i18n_key": "kitchen.already_exists", "http_status": 409, "message": "A kitchen is already associated with this user.", "retryable": false },
-  "KITCHEN_ADDRESS_ALREADY_EXISTS": { "i18n_key": "kitchen.address_already_exists", "http_status": 409, "message": "Kitchen address already exists.", "retryable": false },
-  "KITCHEN_NAME_ALREADY_USED": { "i18n_key": "kitchen.name_already_used", "http_status": 409, "message": "This kitchen name is already in use. Please choose another name.", "retryable": false },
-  "KITCHEN_NOT_FOUND": { "i18n_key": "kitchen.not_found", "http_status": 404, "message": "No kitchen found. Please create a kitchen first.", "retryable": false },
-  
-  "INVITATION_NOT_FOUND": { "i18n_key": "chef.invitation_not_found", "http_status": 404, "message": "Invitation code not found.", "retryable": false },
-  "INVITATION_ALREADY_USED": { "i18n_key": "chef.invitation_already_used", "http_status": 400, "message": "This invitation has already been accepted.", "retryable": false }
-}
-,
+  "ALREADY_EXISTS": {
+    "i18n_key": "kitchen.already_exists",
+    "http_status": 409,
+    "message": "A kitchen is already associated with this user.",
+    "retryable": false
+  },
+  "ADDRESS_ALREADY_EXISTS": {
+    "i18n_key": "kitchen.address_already_exists",
+    "http_status": 409,
+    "message": "Kitchen address already exists.",
+    "retryable": false
+  },
+  "NAME_ALREADY_USED": {
+    "i18n_key": "kitchen.name_already_used",
+    "http_status": 409,
+    "message": "This kitchen name is already in use. Please choose another name.",
+    "retryable": false
+  },
+  "NOT_FOUND": {
+    "i18n_key": "kitchen.not_found",
+    "http_status": 404,
+    "message": "No kitchen found. Please create a kitchen first.",
+    "retryable": false
+  },
+  "STAGE_NOT_FOUND": {
+    "i18n_key": "kitchen.stage_not_found",
+    "http_status": 404,
+    "message": "No kitchen staging found. Please create a kitchen first.",
+    "retryable": false
+  },
+  "STAGE_ADDRESS_NOT_FOUND": {
+    "i18n_key": "kitchen.stage_address_not_found",
+    "http_status": 404,
+    "message": "No kitchen staging address found. Please create an address first.",
+    "retryable": false
+  },
+  "SYNC_KITCHEN_DATA_FAILED": {
+    "i18n_key": "kitchen.sync_kitchen_data_failed",
+    "http_status": 500,
+    "message": "Failed to sync kitchen data. Please try again later.",
+    "retryable": true
+  },
+  "SYNC_KITCHEN_ADDRESSES_FAILED": {
+    "i18n_key": "kitchen.sync_kitchen_addresses_failed",
+    "http_status": 500,
+    "message": "Failed to sync kitchen addresses. Please try again later.",
+    "retryable": true
+  },
+  "ADDRESS_CREATE_NOT_ALLOWED": {
+    "i18n_key": "kitchens.address_create_failed",
+    "http_status": 200,
+    "code": "OK",
+    "message": "Kitchens address creation failed"
+  },
+  "UPDATE_NOT_ALLOWED": {
+    "i18n_key": "kitchen.edit_not_allowed",
+    "http_status": 403,
+    "message": "This kitchen cannot be edited because it has already been submitted for approval.",
+    "retryable": false
+  },
+  "INVITATION_NOT_FOUND": {
+    "i18n_key": "chef.invitation_not_found",
+    "http_status": 404,
+    "message": "Invitation code not found.",
+    "retryable": false
+  },
+  "INVITATION_ALREADY_USED": {
+    "i18n_key": "chef.invitation_already_used",
+    "http_status": 400,
+    "message": "This invitation has already been accepted.",
+    "retryable": false
+  },
+  "MEDIA_NOT_FOUND": {
+    "i18n_key": "kitchen.media_not_found",
+    "http_status": 404,
+    "message": "Kitchen media not found or does not belong to this kitchen.",
+    "retryable": false
+  },
+  "MEDIA_DELETE_FAILED": {
+    "i18n_key": "kitchen.media_delete_failed",
+    "http_status": 500,
+    "message": "Failed to delete kitchen media. Please try again later.",
+    "retryable": true
+  },
+    "MEDIA_UPLOAD_NOT_ALLOWED": {
+    "i18n_key": "kitchen.media_upload_failed",
+    "http_status": 500,
+    "message": "Failed to delete create media urls. Please try again later.",
+    "retryable": true
+  }
+
+},
+
 
   "MEDIA": {
     "MEDIA_PROCESSING_FAILED": { "i18n_key": "media.processing_failed", "http_status": 500, "message": "Media processing failed. Please try again later.", "retryable": true },
@@ -107,6 +192,38 @@
     "retryable": false
   }
 },
+  "REQUEST": {
+    "ALREADY_PROCESSED": {
+      "i18n_key": "requests.already_processed",
+      "http_status": 409,
+      "message": "This request has already been processed.",
+      "retryable": false
+    },
+    "UNSUPPORTED_ACTION": {
+      "i18n_key": "requests.unsupported_action",
+      "http_status": 400,
+      "message": "The requested action is not supported.",
+      "retryable": false
+    },
+    "UNSUPPORTED_ENTITY": {
+      "i18n_key": "requests.unsupported_entity",
+      "http_status": 400,
+      "message": "The requested entity type is not supported.",
+      "retryable": false
+    },"FAILED": {
+      "i18n_key": "request.failed",
+      "http_status": 500,
+      "message": "The request could not be completed due to an unexpected error. Please try again later.",
+      "retryable": true
+    },  "NOT_FOUND": {
+      "i18n_key": "request.not_found",
+      "http_status": 404,
+      "message": "The requested resource could not be found. ",
+      "retryable": false
+    }
+    
+
+  },
 
 
 "COMMON": {
@@ -122,12 +239,19 @@
     "message": "At least one field must be provided to update.",
     "retryable": false
   },
+   "INVALID_FIELD": {
+  "i18n_key": "common.field_validation_failed",
+  "http_status": 400,
+  "message": " field has invalid value or type.",
+  "retryable": false
+},
   "VALIDATION_FAILED": {
     "i18n_key": "common.validation_failed",
     "http_status": 422,
     "message": "Some fields are invalid.",
     "retryable": false
   },
+
   "INVALID_MOBILE_NUMBER_FORMAT": {
     "i18n_key": "common.invalid_mobile_format",
     "http_status": 422,

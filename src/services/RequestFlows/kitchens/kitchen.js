@@ -95,7 +95,7 @@ exports.approveFullKitchen = async (entityId, traceId) => {
     log.info('Updating kitchens table');
     await client.query(
       `UPDATE kitchens
-       SET name=$1, tagline=$2, bio=$3, is_logo_available=$4, status='approved', updated_at=NOW()
+       SET name=$1, tagline=$2, bio=$3, is_logo_available=$4, status='APPROVED', updated_at=NOW()
        WHERE id=$5`,
       [kitchenStaging.name, kitchenStaging.tagline, kitchenStaging.bio, kitchenStaging.is_logo_available, entityId]
     );
@@ -134,7 +134,7 @@ exports.approveFullKitchen = async (entityId, traceId) => {
         await client.query(
           `INSERT INTO kitchen_availability
            (kitchen_id, day_of_week_id, slot_id, is_available, custom_start_time, custom_end_time, status, created_at, updated_at)
-           VALUES ($1,$2,$3,$4,$5,$6,'approved',NOW(),NOW())`,
+           VALUES ($1,$2,$3,$4,$5,$6,'APPROVED',NOW(),NOW())`,
           [entityId, av.day_of_week_id, av.slot_id, true, av.custom_start_time, av.custom_end_time]
         );
       }

@@ -53,9 +53,14 @@ exports.updateKitchenAvailability = async (req, res, next) => {
     if (!kitchenRows.length) throw new BusinessError('KITCHEN.NOT_FOUND');
     const kitchenStatus = kitchenRows[0].status;
 
-    if (kitchenStatus === 'SUBMITTED') {
-      throw new BusinessError('KITCHEN.UPDATE_NOT_ALLOWED', { traceId: req.traceId });
-    }
+   if (kitchenStatus === 'SUBMITTED') {
+      log.warn({ kitchenId }, '[editKitchen] Kitchen is submitted, update not allowed');
+      throw new BusinessError('KITCHEN.UPDATE_NOT_ALLOWED', {
+        traceId: req.traceId,
+        details: { fields: ['kitchenId'], meta: { reason: 'status_submitted' } }
+      });
+    } else {
+      log.info({ kitchenId }, '[editKitchen] Kitchen approved/other, creating change request');}
 
     // 5️⃣ Always get staging kitchen
     const { rows: stagingKitchen } = await client.query(

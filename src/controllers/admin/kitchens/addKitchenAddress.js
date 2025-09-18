@@ -68,11 +68,14 @@ exports.addKitchenAddress = async (req, res, next) => {
 const kitchenStatus = (kitchenRows[0].status || '').toUpperCase();
 
       if (kitchenStatus === 'SUBMITTED') {
-        throw new BusinessError('KITCHEN.ADDRESS_CREATE_NOT_ALLOWED', {
-          traceId: req.traceId,
-          details: { reason: 'Kitchen is already submitted, cannot add address.' }
-        });
-      }
+      log.warn({ kitchenId }, '[editKitchen] Kitchen is submitted, update not allowed');
+      throw new BusinessError('KITCHEN.CREATE_NOT_ALLOWED', {
+        traceId: req.traceId,
+        details: { fields: ['kitchenId'], meta: { reason: 'status_submitted' } }
+      });
+    } else {
+      log.info({ kitchenId }, '[editKitchen] Kitchen approved/other, creating change request');
+    }
 
       // prepare mainId upfront
       const mainId = uuidv4();

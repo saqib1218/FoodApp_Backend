@@ -82,11 +82,11 @@
     "message": "Failed to sync kitchen addresses. Please try again later.",
     "retryable": true
   },
-  "ADDRESS_CREATE_NOT_ALLOWED": {
-    "i18n_key": "kitchens.address_create_failed",
+  "CREATE_NOT_ALLOWED": {
+    "i18n_key": "kitchens.create_failed",
     "http_status": 200,
     "code": "OK",
-    "message": "Kitchens address creation failed"
+    "message": "This kitchen data cannot be added or created because it has already been submitted for approval."
   },
   "UPDATE_NOT_ALLOWED": {
     "i18n_key": "kitchen.edit_not_allowed",

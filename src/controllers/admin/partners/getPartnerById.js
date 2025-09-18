@@ -35,6 +35,7 @@ exports.getPartnerById = async (req, res, next) => {
         SELECT 
           ku.id AS user_id,
           ku.kitchen_id,
+          k.name AS kitchen_name,
           ku.name,
           ku.phone AS mobilenumber,
           ku.email,
@@ -50,6 +51,7 @@ exports.getPartnerById = async (req, res, next) => {
           kr.name AS role_name,
           kr.label_key AS role_label
         FROM kitchen_users ku
+        LEFT JOIN kitchens k ON k.id = ku.kitchen_id
         LEFT JOIN kitchen_user_roles kur ON kur.kitchen_user_id = ku.id
         LEFT JOIN kitchen_roles kr ON kr.id = kur.role_id
         WHERE ku.id = $1 AND ku.deleted_at IS NULL
@@ -67,6 +69,7 @@ exports.getPartnerById = async (req, res, next) => {
       const user = {
         user_id: row.user_id,
         kitchen_id: row.kitchen_id,
+        kitchen_name: row.kitchen_name,
         name: row.name,
         mobilenumber: row.mobilenumber,
         email: row.email,
